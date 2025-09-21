@@ -1,18 +1,17 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Application.Interface;
-using Application.Model;
-using Application.Options;
-using Application.Utility;
-using Infrastructure.Response;
 using Microsoft.Extensions.Options;
+using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.Model;
+using OsuTaikoDaniDojo.Application.Options;
+using OsuTaikoDaniDojo.Application.Utility;
+using OsuTaikoDaniDojo.Infrastructure.Response;
 
-namespace Infrastructure.Service;
+namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
 public class RedisSessionService : IRedisSessionService
 {
-    private static readonly int SessionExpiryInSecond = (int)TimeSpan.FromDays(14).TotalSeconds;
     private readonly HttpClient _httpClient;
 
     public RedisSessionService(HttpClient httpClient, IOptions<RedisOptions> options)
@@ -22,10 +21,10 @@ public class RedisSessionService : IRedisSessionService
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.Value.Token);
     }
 
-    public async Task SaveSessionAsync(string sessionId, object sessionData)
+    public async Task SaveSessionAsync(string sessionId, object sessionData, int timeToLiveInSecond)
     {
         var dataJson = JsonSerializer.Serialize(sessionData);
-        var bodyParams = new object[] { "SET", sessionId, dataJson, "EX", SessionExpiryInSecond };
+        var bodyParams = new object[] { "SET", sessionId, dataJson, "EX", timeToLiveInSecond };
         await _httpClient.PostAsJsonAsync("", bodyParams);
     }
 

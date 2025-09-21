@@ -1,6 +1,6 @@
-﻿using Application.Model;
+﻿using OsuTaikoDaniDojo.Application.Model;
 
-namespace Application.Interface;
+namespace OsuTaikoDaniDojo.Application.Interface;
 
 public interface IOsuAuthService
 {

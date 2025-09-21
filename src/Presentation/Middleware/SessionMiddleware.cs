@@ -1,5 +1,5 @@
-﻿using Application.Interface;
-using Application.Model;
+﻿using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Presentation.Utility;
 
 namespace OsuTaikoDaniDojo.Presentation.Middleware;
@@ -17,7 +17,7 @@ public class SessionMiddleware(
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var sessionId = context.Request.Cookies[ClientConst.SessionIdCookies];
+        var sessionId = context.Request.Cookies[ClientConst.SessionIdCookieName];
 
         if (!string.IsNullOrEmpty(sessionId))
         {
@@ -29,7 +29,7 @@ public class SessionMiddleware(
             }
             else
             {
-                context.Response.Cookies.Delete(ClientConst.SessionIdCookies);
+                context.Response.Cookies.Delete(ClientConst.SessionIdCookieName);
             }
         }
 
@@ -59,7 +59,7 @@ public class SessionMiddleware(
         }
 
         var newSession = new UserSession { UserId = session.UserId, UserToken = newUserToken };
-        await _redisSessionService.SaveSessionAsync(sessionId, newSession);
+        await _redisSessionService.SaveSessionAsync(sessionId, newSession, ClientConst.SessionIdCookieExpiryInSecond);
         return newSession;
     }
 }

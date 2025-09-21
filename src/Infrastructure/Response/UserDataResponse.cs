@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace Infrastructure.Response;
+namespace OsuTaikoDaniDojo.Infrastructure.Response;
 
 public class UserDataResponse
 {

@@ -1,4 +1,4 @@
-﻿namespace Application.Utility;
+﻿namespace OsuTaikoDaniDojo.Application.Utility;
 
 public static class LoggingHelper
 {

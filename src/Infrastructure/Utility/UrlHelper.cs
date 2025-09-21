@@ -1,4 +1,4 @@
-﻿namespace Infrastructure.Utility;
+﻿namespace OsuTaikoDaniDojo.Infrastructure.Utility;
 
 public static class UrlHelper
 {

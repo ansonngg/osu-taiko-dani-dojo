@@ -1,7 +1,7 @@
-﻿using Application.Interface;
-using Application.Model;
-using Application.Utility;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.Model;
+using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Presentation.Request;
 using OsuTaikoDaniDojo.Presentation.Response;
 using OsuTaikoDaniDojo.Presentation.Utility;
@@ -12,7 +12,6 @@ namespace OsuTaikoDaniDojo.Presentation.Controller;
 [Route("api/[controller]")]
 public class OAuthController(IOsuAuthService osuAuthService, IRedisSessionService redisSessionService) : ControllerBase
 {
-    private static readonly int CookiesExpiryInSecond = (int)TimeSpan.FromDays(14).TotalSeconds;
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
     private readonly IRedisSessionService _redisSessionService = redisSessionService;
 
@@ -30,17 +29,17 @@ public class OAuthController(IOsuAuthService osuAuthService, IRedisSessionServic
         var userId = await _osuAuthService.GetUserIdAsync(userToken.AccessToken);
         var sessionData = new UserSession { UserId = userId, UserToken = userToken };
         var sessionId = await _GenerateUniqueSessionId();
-        await _redisSessionService.SaveSessionAsync(sessionId, sessionData);
+        await _redisSessionService.SaveSessionAsync(sessionId, sessionData, ClientConst.SessionIdCookieExpiryInSecond);
 
         Response.Cookies.Append(
-            ClientConst.SessionIdCookies,
+            ClientConst.SessionIdCookieName,
             sessionId,
             new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddSeconds(CookiesExpiryInSecond)
+                Expires = DateTimeOffset.UtcNow.AddSeconds(ClientConst.SessionIdCookieExpiryInSecond)
             });
 
         this.Log($"User with Id {userId} logged in.");

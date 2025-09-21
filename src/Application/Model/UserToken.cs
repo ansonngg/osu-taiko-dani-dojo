@@ -1,4 +1,4 @@
-﻿namespace Application.Model;
+﻿namespace OsuTaikoDaniDojo.Application.Model;
 
 public class UserToken
 {

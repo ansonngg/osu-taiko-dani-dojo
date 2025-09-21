@@ -1,6 +1,6 @@
-﻿using Application.Interface;
-using Application.Options;
-using Infrastructure.Service;
+﻿using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.Options;
+using OsuTaikoDaniDojo.Infrastructure.Service;
 using OsuTaikoDaniDojo.Presentation.Middleware;
 
 namespace OsuTaikoDaniDojo.Presentation.Utility;

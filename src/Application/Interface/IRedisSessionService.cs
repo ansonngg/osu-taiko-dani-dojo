@@ -1,10 +1,10 @@
-﻿using Application.Model;
+﻿using OsuTaikoDaniDojo.Application.Model;
 
-namespace Application.Interface;
+namespace OsuTaikoDaniDojo.Application.Interface;
 
 public interface IRedisSessionService
 {
-    Task SaveSessionAsync(string sessionId, object sessionData);
+    Task SaveSessionAsync(string sessionId, object sessionData, int timeToLiveInSecond);
     Task<UserSession?> GetSessionAsync(string sessionId);
     Task DeleteSessionAsync(string sessionId);
     Task<bool> ExistsSessionAsync(string sessionId);

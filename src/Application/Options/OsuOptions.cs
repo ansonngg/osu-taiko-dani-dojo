@@ -1,4 +1,4 @@
-﻿namespace Application.Options;
+﻿namespace OsuTaikoDaniDojo.Application.Options;
 
 public class OsuOptions
 {

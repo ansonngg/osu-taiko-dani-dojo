@@ -1,14 +1,14 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using Application.Interface;
-using Application.Model;
-using Application.Options;
-using Application.Utility;
-using Infrastructure.Response;
-using Infrastructure.Utility;
 using Microsoft.Extensions.Options;
+using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.Model;
+using OsuTaikoDaniDojo.Application.Options;
+using OsuTaikoDaniDojo.Application.Utility;
+using OsuTaikoDaniDojo.Infrastructure.Response;
+using OsuTaikoDaniDojo.Infrastructure.Utility;
 
-namespace Infrastructure.Service;
+namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
 public class OsuAuthService : IOsuAuthService
 {

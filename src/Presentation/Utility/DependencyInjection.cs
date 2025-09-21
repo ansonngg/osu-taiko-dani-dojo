@@ -21,8 +21,6 @@ public static class DependencyInjection
 
     public static void UseMiddleware(this WebApplication app)
     {
-        app.UseMiddleware<SessionMiddleware>(
-            app.Services.GetRequiredService<IOsuAuthService>(),
-            app.Services.GetRequiredService<IRedisSessionService>());
+        app.UseMiddleware<SessionMiddleware>();
     }
 }

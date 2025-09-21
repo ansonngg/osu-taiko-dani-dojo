@@ -28,25 +28,19 @@ public class OAuthController(IOsuAuthService osuAuthService, IRedisSessionServic
         var userToken = await _osuAuthService.ExchangeTokenAsync(request.Code);
         var userId = await _osuAuthService.GetUserIdAsync(userToken.AccessToken);
         var sessionData = new UserSession { UserId = userId, UserToken = userToken };
-        var sessionId = await _GenerateUniqueSessionId();
+        var sessionId = await _GenerateUniqueSessionIdAsync();
         await _redisSessionService.SaveSessionAsync(sessionId, sessionData, ClientConst.SessionIdCookieExpiryInSecond);
 
         Response.Cookies.Append(
             ClientConst.SessionIdCookieName,
             sessionId,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Lax,
-                Expires = DateTimeOffset.UtcNow.AddSeconds(ClientConst.SessionIdCookieExpiryInSecond)
-            });
+            DateTimeOffset.UtcNow.AddSeconds(ClientConst.SessionIdCookieExpiryInSecond));
 
         this.Log($"User with Id {userId} logged in.");
         return Ok();
     }
 
-    private async Task<string> _GenerateUniqueSessionId()
+    private async Task<string> _GenerateUniqueSessionIdAsync()
     {
         var sessionId = Guid.NewGuid().ToString();
 

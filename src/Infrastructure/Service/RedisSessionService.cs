@@ -30,7 +30,7 @@ public class RedisSessionService : IRedisSessionService
 
     public async Task<UserSession?> GetSessionAsync(string sessionId)
     {
-        var bodyParams = new { command = new object[] { "GET", sessionId } };
+        var bodyParams = new object[] { "GET", sessionId };
         var response = await _httpClient.PostAsJsonAsync("", bodyParams);
         response.EnsureSuccessStatusCode();
         var retrieveDataResponse = await response.Content.ReadFromJsonAsync<RetrieveDataResponse>();
@@ -42,7 +42,7 @@ public class RedisSessionService : IRedisSessionService
 
     public async Task DeleteSessionAsync(string sessionId)
     {
-        var bodyParams = new { command = new object[] { "DEL", sessionId } };
+        var bodyParams = new object[] { "DEL", sessionId };
         var response = await _httpClient.PostAsJsonAsync("", bodyParams);
         response.EnsureSuccessStatusCode();
     }
@@ -51,7 +51,6 @@ public class RedisSessionService : IRedisSessionService
     {
         var bodyParams = new object[] { "EXISTS", sessionId };
         var response = await _httpClient.PostAsJsonAsync("", bodyParams);
-        Console.WriteLine(await response.Content.ReadAsStringAsync());
         response.EnsureSuccessStatusCode();
         var existKeyResponse = await response.Content.ReadFromJsonAsync<ExistKeyResponse>();
 

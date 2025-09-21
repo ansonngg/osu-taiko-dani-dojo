@@ -26,7 +26,7 @@ public class OsuAuthService : IOsuAuthService
     {
         if (_httpClient.BaseAddress == null)
         {
-            throw this.ExceptionSince("Base address is null");
+            throw this.ExceptionSince("Base address is null.");
         }
 
         var queryParams = new Dictionary<string, string>
@@ -37,7 +37,7 @@ public class OsuAuthService : IOsuAuthService
             ["scope"] = _options.Scope
         };
 
-        var authorizeUrl = new Uri(_httpClient.BaseAddress + "oauth/authorize").AbsoluteUri;
+        var authorizeUrl = new Uri(_httpClient.BaseAddress, "oauth/authorize").AbsoluteUri;
         return authorizeUrl.ParameterizedWith(queryParams);
     }
 
@@ -54,7 +54,7 @@ public class OsuAuthService : IOsuAuthService
 
         var response = await _httpClient.PostAsJsonAsync("oauth/token", bodyParams);
         response.EnsureSuccessStatusCode();
-        return await _ConstructUserTokenAsync(response);
+        return _ConstructUserTokenAsync(await response.Content.ReadFromJsonAsync<TokenResponse>());
     }
 
     public async Task<UserToken?> RefreshTokenAsync(string refreshToken)
@@ -79,7 +79,7 @@ public class OsuAuthService : IOsuAuthService
             return null;
         }
 
-        return await _ConstructUserTokenAsync(response);
+        return _ConstructUserTokenAsync(await response.Content.ReadFromJsonAsync<TokenResponse>());
     }
 
     public async Task<int> GetUserIdAsync(string accessToken)
@@ -87,18 +87,15 @@ public class OsuAuthService : IOsuAuthService
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         var response = await _httpClient.GetAsync("api/v2/me");
         response.EnsureSuccessStatusCode();
-        Console.WriteLine(await response.Content.ReadAsStringAsync());
         var userDataResponse = await response.Content.ReadFromJsonAsync<UserDataResponse>();
-        return userDataResponse?.Id ?? throw this.ExceptionSince("User data response is null");
+        return userDataResponse?.Id ?? throw this.ExceptionSince("User data response is null.");
     }
 
-    private async Task<UserToken> _ConstructUserTokenAsync(HttpResponseMessage response)
+    private UserToken _ConstructUserTokenAsync(TokenResponse? tokenResponse)
     {
-        var tokenResponse = await response.Content.ReadFromJsonAsync<TokenResponse>();
-
         if (tokenResponse == null)
         {
-            throw this.ExceptionSince("Token response is null");
+            throw this.ExceptionSince("Token response is null.");
         }
 
         return new UserToken

@@ -6,4 +6,5 @@ public class OsuOptions
     public string ClientSecret { get; init; } = string.Empty;
     public string RedirectUri { get; init; } = string.Empty;
     public string Scope { get; init; } = string.Empty;
+    public int TokenExpiryBufferInSecond { get; init; }
 }

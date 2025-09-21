@@ -1,6 +1,6 @@
 # osu!taiko Dan-i Dojo
 
-No way we still haven't had a Dan-i Dojo for osu!taiko yet, so I decided to make it.
+No way we still haven't had a Dan-i Dojo for osu!taiko yet, so I decided to make one.
 
 ## Backend Tech Stack
 - **.NET 9 Web API**

@@ -13,12 +13,12 @@ namespace OsuTaikoDaniDojo.Infrastructure.Service;
 public class OsuAuthService : IOsuAuthService
 {
     private readonly HttpClient _httpClient;
-    private readonly OsuOptions _options;
+    private readonly OsuOptions _osuOptions;
 
-    public OsuAuthService(HttpClient httpClient, IOptions<OsuOptions> options)
+    public OsuAuthService(HttpClient httpClient, IOptions<OsuOptions> osuOptions)
     {
         _httpClient = httpClient;
-        _options = options.Value;
+        _osuOptions = osuOptions.Value;
         _httpClient.BaseAddress = new Uri("https://osu.ppy.sh");
     }
 
@@ -31,10 +31,10 @@ public class OsuAuthService : IOsuAuthService
 
         var queryParams = new Dictionary<string, string>
         {
-            ["client_id"] = _options.ClientId,
-            ["redirect_uri"] = _options.RedirectUri,
+            ["client_id"] = _osuOptions.ClientId,
+            ["redirect_uri"] = _osuOptions.RedirectUri,
             ["response_type"] = "code",
-            ["scope"] = _options.Scope
+            ["scope"] = _osuOptions.Scope
         };
 
         var authorizeUrl = new Uri(_httpClient.BaseAddress, "oauth/authorize").AbsoluteUri;
@@ -45,11 +45,11 @@ public class OsuAuthService : IOsuAuthService
     {
         var bodyParams = new
         {
-            client_id = _options.ClientId,
-            client_secret = _options.ClientSecret,
+            client_id = _osuOptions.ClientId,
+            client_secret = _osuOptions.ClientSecret,
             code,
             grant_type = "authorization_code",
-            redirect_uri = _options.RedirectUri
+            redirect_uri = _osuOptions.RedirectUri
         };
 
         var response = await _httpClient.PostAsJsonAsync("oauth/token", bodyParams);
@@ -61,8 +61,8 @@ public class OsuAuthService : IOsuAuthService
     {
         var bodyParams = new
         {
-            client_id = _options.ClientId,
-            client_secret = _options.ClientSecret,
+            client_id = _osuOptions.ClientId,
+            client_secret = _osuOptions.ClientSecret,
             grant_type = "refresh_token",
             refresh_token = refreshToken
         };

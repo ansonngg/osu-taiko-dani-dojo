@@ -1,19 +1,26 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Presentation.Request;
 using OsuTaikoDaniDojo.Presentation.Response;
 using OsuTaikoDaniDojo.Presentation.Utility;
+using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
 namespace OsuTaikoDaniDojo.Presentation.Controller;
 
 [ApiController]
 [Route("api/[controller]")]
-public class OAuthController(IOsuAuthService osuAuthService, IRedisSessionService redisSessionService) : ControllerBase
+public class OAuthController(
+    IOsuAuthService osuAuthService,
+    ISessionService sessionService,
+    IOptions<SessionOptions> options)
+    : ControllerBase
 {
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
-    private readonly IRedisSessionService _redisSessionService = redisSessionService;
+    private readonly ISessionService _sessionService = sessionService;
+    private readonly int _cookieSessionExpiryInDay = options.Value.CookieExpiryInDay;
 
     [HttpGet("authorize-url")]
     public IActionResult GetAuthorizeUrl()
@@ -29,12 +36,12 @@ public class OAuthController(IOsuAuthService osuAuthService, IRedisSessionServic
         var userId = await _osuAuthService.GetUserIdAsync(userToken.AccessToken);
         var sessionData = new UserSession { UserId = userId, UserToken = userToken };
         var sessionId = await _GenerateUniqueSessionIdAsync();
-        await _redisSessionService.SaveSessionAsync(sessionId, sessionData, ClientConst.SessionIdCookieExpiryInSecond);
+        await _sessionService.SaveSessionAsync(sessionId, sessionData);
 
         Response.Cookies.Append(
             ClientConst.SessionIdCookieName,
             sessionId,
-            DateTimeOffset.UtcNow.AddSeconds(ClientConst.SessionIdCookieExpiryInSecond));
+            DateTimeOffset.UtcNow.AddDays(_cookieSessionExpiryInDay));
 
         this.Log($"User with Id {userId} logged in.");
         return Ok();
@@ -44,7 +51,7 @@ public class OAuthController(IOsuAuthService osuAuthService, IRedisSessionServic
     {
         var sessionId = Guid.NewGuid().ToString();
 
-        while (await _redisSessionService.ExistsSessionAsync(sessionId))
+        while (await _sessionService.ExistsSessionAsync(sessionId))
         {
             sessionId = Guid.NewGuid().ToString();
         }

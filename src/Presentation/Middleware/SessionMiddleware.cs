@@ -3,19 +3,22 @@ using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Presentation.Utility;
+using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
 namespace OsuTaikoDaniDojo.Presentation.Middleware;
 
 public class SessionMiddleware(
     RequestDelegate next,
     IOsuAuthService osuAuthService,
-    IRedisSessionService redisSessionService,
-    IOptions<OsuOptions> options)
+    ISessionService sessionService,
+    IOptions<SessionOptions> sessionOptions,
+    IOptions<OsuOptions> osuOptions)
 {
     private readonly RequestDelegate _next = next;
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
-    private readonly IRedisSessionService _redisSessionService = redisSessionService;
-    private readonly int _tokenExpiryBufferInSecond = options.Value.TokenExpiryBufferInSecond;
+    private readonly ISessionService _sessionService = sessionService;
+    private readonly int _cookieSessionExpiryInDay = sessionOptions.Value.CookieExpiryInDay;
+    private readonly int _tokenExpiryBufferInSecond = osuOptions.Value.TokenExpiryBufferInSecond;
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -44,7 +47,7 @@ public class SessionMiddleware(
             context.Response.Cookies.Append(
                 ClientConst.SessionIdCookieName,
                 sessionId,
-                DateTimeOffset.UtcNow.AddSeconds(ClientConst.SessionIdCookieExpiryInSecond));
+                DateTimeOffset.UtcNow.AddDays(_cookieSessionExpiryInDay));
         }
 
         context.Items["UserSession"] = session;
@@ -52,7 +55,7 @@ public class SessionMiddleware(
 
     private async Task<(UserSession?, bool)> _RetrieveSessionAsync(string sessionId)
     {
-        var session = await _redisSessionService.GetSessionAsync(sessionId);
+        var session = await _sessionService.GetSessionAsync(sessionId);
 
         if (session == null)
         {
@@ -68,12 +71,12 @@ public class SessionMiddleware(
 
         if (newUserToken == null)
         {
-            await _redisSessionService.DeleteSessionAsync(sessionId);
+            await _sessionService.DeleteSessionAsync(sessionId);
             return (null, false);
         }
 
         var newSession = new UserSession { UserId = session.UserId, UserToken = newUserToken };
-        await _redisSessionService.SaveSessionAsync(sessionId, newSession, ClientConst.SessionIdCookieExpiryInSecond);
+        await _sessionService.SaveSessionAsync(sessionId, newSession);
         return (newSession, true);
     }
 }

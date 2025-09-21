@@ -8,7 +8,7 @@ public static class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.AddOptions();
-        builder.AddServices();
+        builder.Services.AddServices();
         builder.Services.AddControllers();
 
         var app = builder.Build();

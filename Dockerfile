@@ -7,12 +7,12 @@ COPY OsuTaikoDaniDojo.sln ./
 COPY src/Application/*.csproj ./src/Application/
 COPY src/Domain/*.csproj ./src/Domain/
 COPY src/Infrastructure/*.csproj ./src/Infrastructure/
-COPY src/Presentation/*.csproj ./src/Presentation/
+COPY src/Web/*.csproj ./src/Web/
 RUN dotnet restore
 
 # Copy all source files and build
 COPY src/. ./src/
-WORKDIR /app/src/Presentation
+WORKDIR /app/src/Web
 RUN dotnet publish -c Release -o /app/publish
 
 # Runtime
@@ -28,4 +28,4 @@ ENV ASPNETCORE_HTTP_PORTS=${PORT:-5051}
 # Expose default port
 EXPOSE 5051
 
-ENTRYPOINT ["dotnet", "Presentation.dll"]
+ENTRYPOINT ["dotnet", "Web.dll"]

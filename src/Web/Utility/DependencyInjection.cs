@@ -1,10 +1,10 @@
 ﻿using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Infrastructure.Service;
-using OsuTaikoDaniDojo.Presentation.Middleware;
+using OsuTaikoDaniDojo.Web.Middleware;
 using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
-namespace OsuTaikoDaniDojo.Presentation.Utility;
+namespace OsuTaikoDaniDojo.Web.Utility;
 
 public static class DependencyInjection
 {

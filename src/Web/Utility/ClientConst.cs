@@ -1,4 +1,4 @@
-﻿namespace OsuTaikoDaniDojo.Presentation.Utility;
+﻿namespace OsuTaikoDaniDojo.Web.Utility;
 
 public static class ClientConst
 {

@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace OsuTaikoDaniDojo.Presentation.Response;
+namespace OsuTaikoDaniDojo.Web.Response;
 
 public class AuthorizeUrlResponse
 {

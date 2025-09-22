@@ -2,10 +2,10 @@
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Options;
-using OsuTaikoDaniDojo.Presentation.Utility;
+using OsuTaikoDaniDojo.Web.Utility;
 using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
-namespace OsuTaikoDaniDojo.Presentation.Middleware;
+namespace OsuTaikoDaniDojo.Web.Middleware;
 
 public class SessionMiddleware(
     RequestDelegate next,

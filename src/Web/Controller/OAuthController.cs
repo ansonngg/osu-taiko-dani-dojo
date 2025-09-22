@@ -3,12 +3,12 @@ using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Utility;
-using OsuTaikoDaniDojo.Presentation.Request;
-using OsuTaikoDaniDojo.Presentation.Response;
-using OsuTaikoDaniDojo.Presentation.Utility;
+using OsuTaikoDaniDojo.Web.Request;
+using OsuTaikoDaniDojo.Web.Response;
+using OsuTaikoDaniDojo.Web.Utility;
 using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
-namespace OsuTaikoDaniDojo.Presentation.Controller;
+namespace OsuTaikoDaniDojo.Web.Controller;
 
 [ApiController]
 [Route("api/[controller]")]

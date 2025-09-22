@@ -1,6 +1,6 @@
-using OsuTaikoDaniDojo.Presentation.Utility;
+using OsuTaikoDaniDojo.Web.Utility;
 
-namespace OsuTaikoDaniDojo.Presentation;
+namespace OsuTaikoDaniDojo.Web;
 
 public static class Program
 {

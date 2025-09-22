@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace OsuTaikoDaniDojo.Presentation.Request;
+namespace OsuTaikoDaniDojo.Web.Request;
 
 public class LoginRequest
 {

@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace OsuTaikoDaniDojo.Presentation.Controller;
+namespace OsuTaikoDaniDojo.Web.Controller;
 
 [ApiController]
 [Route("api/[controller]")]

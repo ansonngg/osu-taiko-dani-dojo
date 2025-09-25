@@ -8,8 +8,10 @@ public static class Program
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.AddOptions();
+        builder.AddDatabase();
         builder.Services.AddServices();
         builder.Services.AddControllers();
+        builder.Services.AddRepositories();
 
         var app = builder.Build();
         app.UseMiddleware();

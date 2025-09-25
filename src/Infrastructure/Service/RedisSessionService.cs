@@ -3,7 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Infrastructure.Response;
@@ -36,7 +35,7 @@ public class RedisSessionService : ISessionService
         await _httpClient.PostAsJsonAsync("", bodyParams);
     }
 
-    public async Task<UserSession?> GetSessionAsync(string sessionId)
+    public async Task<T?> GetSessionAsync<T>(string sessionId)
     {
         var bodyParams = new object[] { "GET", sessionId };
         var response = await _httpClient.PostAsJsonAsync("", bodyParams);
@@ -44,7 +43,7 @@ public class RedisSessionService : ISessionService
         var retrieveDataResponse = await response.Content.ReadFromJsonAsync<RetrieveDataResponse>();
 
         return retrieveDataResponse != null
-            ? JsonSerializer.Deserialize<UserSession>(retrieveDataResponse.Result)
+            ? JsonSerializer.Deserialize<T>(retrieveDataResponse.Result)
             : throw this.ExceptionSince("Retrieve data response is null.");
     }
 

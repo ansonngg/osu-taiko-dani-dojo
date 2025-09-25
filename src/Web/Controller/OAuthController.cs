@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Utility;
+using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Request;
 using OsuTaikoDaniDojo.Web.Response;
 using OsuTaikoDaniDojo.Web.Utility;
@@ -32,9 +32,17 @@ public class OAuthController(
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var userToken = await _osuAuthService.ExchangeTokenAsync(request.Code);
-        var userId = await _osuAuthService.GetUserIdAsync(userToken.AccessToken);
-        var sessionData = new UserSession { UserId = userId, UserToken = userToken };
+        var tokenQuery = await _osuAuthService.ExchangeTokenAsync(request.Code);
+        var userId = await _osuAuthService.GetUserIdAsync(tokenQuery.AccessToken);
+
+        var sessionData = new SessionContext
+        {
+            UserId = userId,
+            AccessToken = tokenQuery.AccessToken,
+            RefreshToken = tokenQuery.RefreshToken,
+            ExpiresAt = tokenQuery.ExpiresAt
+        };
+
         var sessionId = await _GenerateUniqueSessionIdAsync();
         await _sessionService.SaveSessionAsync(sessionId, sessionData);
 

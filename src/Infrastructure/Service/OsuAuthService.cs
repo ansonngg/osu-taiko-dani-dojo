@@ -2,8 +2,8 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Options;
+using OsuTaikoDaniDojo.Application.Query;
 using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Infrastructure.Response;
 using OsuTaikoDaniDojo.Infrastructure.Utility;
@@ -41,7 +41,7 @@ public class OsuAuthService : IOsuAuthService
         return authorizeUrl.ParameterizedWith(queryParams);
     }
 
-    public async Task<UserToken> ExchangeTokenAsync(string code)
+    public async Task<TokenQuery> ExchangeTokenAsync(string code)
     {
         var bodyParams = new
         {
@@ -54,10 +54,10 @@ public class OsuAuthService : IOsuAuthService
 
         var response = await _httpClient.PostAsJsonAsync("oauth/token", bodyParams);
         response.EnsureSuccessStatusCode();
-        return _ConstructUserTokenAsync(await response.Content.ReadFromJsonAsync<TokenResponse>());
+        return _ConstructTokenQueryAsync(await response.Content.ReadFromJsonAsync<TokenResponse>());
     }
 
-    public async Task<UserToken?> RefreshTokenAsync(string refreshToken)
+    public async Task<TokenQuery?> RefreshTokenAsync(string refreshToken)
     {
         var bodyParams = new
         {
@@ -79,7 +79,7 @@ public class OsuAuthService : IOsuAuthService
             return null;
         }
 
-        return _ConstructUserTokenAsync(await response.Content.ReadFromJsonAsync<TokenResponse>());
+        return _ConstructTokenQueryAsync(await response.Content.ReadFromJsonAsync<TokenResponse>());
     }
 
     public async Task<int> GetUserIdAsync(string accessToken)
@@ -91,14 +91,14 @@ public class OsuAuthService : IOsuAuthService
         return userDataResponse?.Id ?? throw this.ExceptionSince("User data response is null.");
     }
 
-    private UserToken _ConstructUserTokenAsync(TokenResponse? tokenResponse)
+    private TokenQuery _ConstructTokenQueryAsync(TokenResponse? tokenResponse)
     {
         if (tokenResponse == null)
         {
             throw this.ExceptionSince("Token response is null.");
         }
 
-        return new UserToken
+        return new TokenQuery
         {
             AccessToken = tokenResponse.AccessToken,
             RefreshToken = tokenResponse.RefreshToken,

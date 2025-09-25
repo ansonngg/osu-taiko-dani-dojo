@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Options;
+using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Utility;
 using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
@@ -53,29 +53,36 @@ public class SessionMiddleware(
         context.Items["UserSession"] = session;
     }
 
-    private async Task<(UserSession?, bool)> _RetrieveSessionAsync(string sessionId)
+    private async Task<(SessionContext?, bool)> _RetrieveSessionAsync(string sessionId)
     {
-        var session = await _sessionService.GetSessionAsync(sessionId);
+        var session = await _sessionService.GetSessionAsync<SessionContext>(sessionId);
 
         if (session == null)
         {
             return (null, false);
         }
 
-        if (DateTime.UtcNow < session.UserToken.ExpiresAt.AddSeconds(-_tokenExpiryBufferInSecond))
+        if (DateTime.UtcNow < session.ExpiresAt.AddSeconds(-_tokenExpiryBufferInSecond))
         {
             return (session, false);
         }
 
-        var newUserToken = await _osuAuthService.RefreshTokenAsync(session.UserToken.RefreshToken);
+        var newTokenQuery = await _osuAuthService.RefreshTokenAsync(session.RefreshToken);
 
-        if (newUserToken == null)
+        if (newTokenQuery == null)
         {
             await _sessionService.DeleteSessionAsync(sessionId);
             return (null, false);
         }
 
-        var newSession = new UserSession { UserId = session.UserId, UserToken = newUserToken };
+        var newSession = new SessionContext
+        {
+            UserId = session.UserId,
+            AccessToken = newTokenQuery.AccessToken,
+            RefreshToken = newTokenQuery.RefreshToken,
+            ExpiresAt = newTokenQuery.ExpiresAt
+        };
+
         await _sessionService.SaveSessionAsync(sessionId, newSession);
         return (newSession, true);
     }

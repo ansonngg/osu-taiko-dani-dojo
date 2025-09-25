@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Model;
 using OsuTaikoDaniDojo.Application.Options;
 
 namespace OsuTaikoDaniDojo.Infrastructure.Service;
@@ -24,14 +23,14 @@ public class HybridSessionService(
         await _redisSessionService.SaveSessionAsync(sessionId, sessionData);
     }
 
-    public async Task<UserSession?> GetSessionAsync(string sessionId)
+    public async Task<T?> GetSessionAsync<T>(string sessionId)
     {
-        if (_memoryCache.TryGetValue(sessionId, out UserSession? session))
+        if (_memoryCache.TryGetValue(sessionId, out T? session))
         {
             return session;
         }
 
-        var redisSession = await _redisSessionService.GetSessionAsync(sessionId);
+        var redisSession = await _redisSessionService.GetSessionAsync<T>(sessionId);
 
         if (redisSession != null)
         {

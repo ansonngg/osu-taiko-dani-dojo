@@ -2,7 +2,7 @@
 
 public abstract class WorkerBase
 {
-    protected bool IsCanceling { get; set; }
+    private bool _isCanceling { get; set; }
 
     public void Run(TimeSpan interval, TimeSpan duration, TimeSpan delay = default)
     {
@@ -17,7 +17,7 @@ public abstract class WorkerBase
                 var timer = new PeriodicTimer(interval);
                 var startTime = DateTime.Now;
 
-                while (!IsCanceling && DateTime.Now - startTime < duration && await timer.WaitForNextTickAsync())
+                while (!_isCanceling && DateTime.Now - startTime < duration && await timer.WaitForNextTickAsync())
                 {
                     await Execute();
                 }
@@ -31,5 +31,10 @@ public abstract class WorkerBase
     protected virtual Task OnCompleted()
     {
         return Task.CompletedTask;
+    }
+
+    protected void Cancel()
+    {
+        _isCanceling = true;
     }
 }

@@ -64,6 +64,7 @@ public class ExamTracker
         }
     }
 
+    public int CurrentStage => _currentStage + 1;
     public int CurrentPlaylistId => _currentStage < _playlistIds.Length ? _playlistIds[_currentStage] : 0;
     public int CurrentBeatmapId => _currentStage < _beatmapIds.Length ? _beatmapIds[_currentStage] : 0;
     public int CurrentBeatmapLength => _currentStage < _totalLengths.Length ? _totalLengths[_currentStage] : 0;

@@ -21,6 +21,7 @@ public class ExamSessionController(
     : ControllerBase
 {
     private static readonly TimeSpan ExamSessionExpiry = TimeSpan.FromMinutes(60);
+    private static readonly TimeSpan ExamSessionStatusCheckInterval = TimeSpan.FromSeconds(1);
     private readonly IOsuMultiplayerRoomService _osuMultiplayerRoomService = osuMultiplayerRoomService;
     private readonly ISessionService _sessionService = sessionService;
     private readonly IExamRepository _examRepository = examRepository;
@@ -108,5 +109,55 @@ public class ExamSessionController(
                 IsRoomActive = true,
                 IsPlaylistCorrect = isPlaylistCorrect
             });
+    }
+
+    [HttpGet("{examSessionId:int}")]
+    public async Task<IActionResult> GetExamSessionEvent(int examSessionId)
+    {
+        if (!_memoryCache.TryGetTyped<ExamSessionContext>(examSessionId, out var examSessionContext))
+        {
+            return NotFound();
+        }
+
+        if (examSessionContext == null)
+        {
+            throw new NullReferenceException("Exam session context is null.");
+        }
+
+        Response.Headers.Append("Content-Type", "text/event-stream");
+        var status = examSessionContext.Status;
+        await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
+        var timer = new PeriodicTimer(ExamSessionStatusCheckInterval);
+
+        while (await timer.WaitForNextTickAsync()
+               && examSessionContext.Status is ExamSessionStatus.Waiting or ExamSessionStatus.Playing)
+        {
+            if (examSessionContext.Status == status)
+            {
+                continue;
+            }
+
+            status = examSessionContext.Status;
+            await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
+        }
+
+        await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
+        return Ok();
+    }
+
+    private async Task _SendExamSessionStreamAsync(int examSessionId, int stage, ExamSessionStatus status)
+    {
+        var maxWaitingTime = status == ExamSessionStatus.Waiting ? ClientConst.OsuPollingDuration.Seconds + "s" : "N/A";
+
+        await Response.WriteAsync(
+            $"""
+             id: {examSessionId}
+             stage: {stage}
+             status: {status.ToString()}
+             max_waiting_time: {maxWaitingTime}
+
+             """);
+
+        await Response.Body.FlushAsync();
     }
 }

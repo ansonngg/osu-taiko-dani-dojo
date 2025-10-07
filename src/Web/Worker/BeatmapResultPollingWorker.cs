@@ -25,7 +25,8 @@ public class BeatmapResultPollingWorker(
         if (string.IsNullOrEmpty(accessToken))
         {
             await _examSessionRepository.TerminateAsync(_examSessionContext.ExamSessionId);
-            IsCanceling = true;
+            _examSessionContext.Status = ExamSessionStatus.Terminated;
+            Cancel();
             return;
         }
 
@@ -43,14 +44,17 @@ public class BeatmapResultPollingWorker(
         if (!_examSessionContext.ExamTracker.Judge(beatmapResultQuery))
         {
             await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
+            _examSessionContext.Status = ExamSessionStatus.Failed;
         }
         else if (_examSessionContext.ExamTracker.IsEnded)
         {
             await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
+            _examSessionContext.Status = ExamSessionStatus.Passed;
         }
         else
         {
             await _examSessionRepository.ProceedToNextStageAsync(_examSessionContext.ExamSessionId);
+            _examSessionContext.Status = ExamSessionStatus.Waiting;
 
             new PlaylistStatusPollingWorker(
                     _osuMultiplayerRoomService,
@@ -61,14 +65,17 @@ public class BeatmapResultPollingWorker(
                 .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
         }
 
-        IsCanceling = true;
+        Cancel();
     }
 
     protected override async Task OnCompleted()
     {
-        if (!IsCanceling)
+        if (_examSessionContext.Status != ExamSessionStatus.Playing)
         {
-            await _examSessionRepository.SetNoResponseAsync(_examSessionContext.ExamSessionId);
+            return;
         }
+
+        await _examSessionRepository.SetNoResponseAsync(_examSessionContext.ExamSessionId);
+        _examSessionContext.Status = ExamSessionStatus.NoResponse;
     }
 }

@@ -4,7 +4,6 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
-using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Infrastructure.Response;
 
 namespace OsuTaikoDaniDojo.Infrastructure.Service;
@@ -44,7 +43,7 @@ public class RedisSessionService : ISessionService
 
         return retrieveDataResponse != null
             ? JsonSerializer.Deserialize<T>(retrieveDataResponse.Result)
-            : throw this.ExceptionSince("Retrieve data response is null.");
+            : throw new NullReferenceException("Retrieve data response is null.");
     }
 
     public async Task DeleteSessionAsync(string sessionId)
@@ -63,7 +62,7 @@ public class RedisSessionService : ISessionService
 
         if (existKeyResponse == null)
         {
-            throw this.ExceptionSince("Exist key response is null.");
+            throw new NullReferenceException("Exist key response is null.");
         }
 
         return existKeyResponse.Result == 1;

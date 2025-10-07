@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Request;
 using OsuTaikoDaniDojo.Web.Response;
@@ -15,14 +14,16 @@ namespace OsuTaikoDaniDojo.Web.Controller;
 public class OAuthController(
     IOsuAuthService osuAuthService,
     ISessionService sessionService,
-    IOptions<SessionOptions> options)
+    IOptions<SessionOptions> options,
+    ILogger<OAuthController> logger)
     : ControllerBase
 {
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
     private readonly ISessionService _sessionService = sessionService;
     private readonly int _cookieSessionExpiryInDay = options.Value.CookieExpiryInDay;
+    private readonly ILogger<OAuthController> _logger = logger;
 
-    [HttpGet("authorize-url")]
+    [HttpGet("url")]
     public IActionResult GetAuthorizeUrl()
     {
         var url = _osuAuthService.GetAuthorizeUrl();
@@ -51,7 +52,7 @@ public class OAuthController(
             sessionId,
             DateTimeOffset.UtcNow.AddDays(_cookieSessionExpiryInDay));
 
-        this.Log($"User with Id {userId} logged in.");
+        _logger.LogInformation("User with Id {UserId} logged in.", userId);
         return Ok();
     }
 

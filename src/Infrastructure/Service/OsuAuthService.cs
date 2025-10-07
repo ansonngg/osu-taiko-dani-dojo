@@ -1,10 +1,10 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Application.Query;
-using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Infrastructure.Response;
 using OsuTaikoDaniDojo.Infrastructure.Utility;
 
@@ -14,11 +14,13 @@ public class OsuAuthService : IOsuAuthService
 {
     private readonly HttpClient _httpClient;
     private readonly OsuOptions _osuOptions;
+    private readonly ILogger<OsuAuthService> _logger;
 
-    public OsuAuthService(HttpClient httpClient, IOptions<OsuOptions> osuOptions)
+    public OsuAuthService(HttpClient httpClient, IOptions<OsuOptions> osuOptions, ILogger<OsuAuthService> logger)
     {
         _httpClient = httpClient;
         _osuOptions = osuOptions.Value;
+        _logger = logger;
         _httpClient.BaseAddress = new Uri("https://osu.ppy.sh");
     }
 
@@ -26,7 +28,7 @@ public class OsuAuthService : IOsuAuthService
     {
         if (_httpClient.BaseAddress == null)
         {
-            throw this.ExceptionSince("Base address is null.");
+            throw new NullReferenceException("Base address is null.");
         }
 
         var queryParams = new Dictionary<string, string>
@@ -75,7 +77,7 @@ public class OsuAuthService : IOsuAuthService
         }
         catch
         {
-            this.Log(response.StatusCode.ToString());
+            _logger.LogWarning("{StatusCode}", response.StatusCode.ToString());
             return null;
         }
 
@@ -88,14 +90,14 @@ public class OsuAuthService : IOsuAuthService
         var response = await _httpClient.GetAsync("api/v2/me");
         response.EnsureSuccessStatusCode();
         var userDataResponse = await response.Content.ReadFromJsonAsync<UserDataResponse>();
-        return userDataResponse?.Id ?? throw this.ExceptionSince("User data response is null.");
+        return userDataResponse?.Id ?? throw new NullReferenceException("User data response is null.");
     }
 
     private TokenQuery _ConstructTokenQueryAsync(TokenResponse? tokenResponse)
     {
         if (tokenResponse == null)
         {
-            throw this.ExceptionSince("Token response is null.");
+            throw new NullReferenceException("Token response is null.");
         }
 
         return new TokenQuery

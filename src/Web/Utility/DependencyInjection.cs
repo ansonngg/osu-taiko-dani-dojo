@@ -1,6 +1,5 @@
 ﻿using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
-using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Infrastructure.Repository;
 using OsuTaikoDaniDojo.Infrastructure.Service;
 using OsuTaikoDaniDojo.Web.Middleware;
@@ -11,27 +10,23 @@ namespace OsuTaikoDaniDojo.Web.Utility;
 
 public static class DependencyInjection
 {
-    public static void AddOptions(this WebApplicationBuilder builder)
-    {
-        builder.Services.Configure<SessionOptions>(builder.Configuration.GetSection("Session"));
-        builder.Services.Configure<OsuOptions>(builder.Configuration.GetSection("Osu"));
-        builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
-    }
-
     public static void AddDatabase(this WebApplicationBuilder builder)
     {
         builder.Services.AddSingleton(
             _ =>
             {
-                var url = builder.Configuration["Database:Url"];
+                var databaseOptions = builder.Configuration.GetSection("Database").Get<DatabaseOptions>();
 
-                if (string.IsNullOrEmpty(url))
+                if (databaseOptions == null)
                 {
-                    throw builder.ExceptionSince("Database url is null or empty.");
+                    throw new NullReferenceException("Database options is null.");
                 }
 
-                var key = builder.Configuration["Database:Key"];
-                var client = new Client(url, key, new SupabaseOptions { AutoConnectRealtime = false });
+                var client = new Client(
+                    databaseOptions.Url,
+                    databaseOptions.Key,
+                    new SupabaseOptions { AutoConnectRealtime = false });
+
                 client.InitializeAsync().Wait();
                 return client;
             });
@@ -39,7 +34,6 @@ public static class DependencyInjection
 
     public static void AddServices(this IServiceCollection services)
     {
-        services.AddMemoryCache();
         services.AddHttpClient<RedisSessionService>();
         services.AddHttpClient<IOsuAuthService, OsuAuthService>();
         services.AddSingleton<ISessionService, HybridSessionService>();
@@ -48,6 +42,15 @@ public static class DependencyInjection
     public static void AddRepositories(this IServiceCollection services)
     {
         services.AddSingleton<IExamRepository, ExamRepository>();
+        services.AddSingleton<IExamSessionRepository, ExamSessionRepository>();
+    }
+
+    public static void AddUtilities(this IServiceCollection services)
+    {
+        services.AddOptions<SessionOptions>().BindConfiguration("Session");
+        services.AddOptions<OsuOptions>().BindConfiguration("Osu");
+        services.AddOptions<RedisOptions>().BindConfiguration("Redis");
+        services.AddMemoryCache();
     }
 
     public static void UseMiddleware(this WebApplication app)

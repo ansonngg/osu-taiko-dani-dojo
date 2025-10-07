@@ -1,5 +1,6 @@
 ﻿using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Web.Context;
+using OsuTaikoDaniDojo.Web.Utility;
 
 namespace OsuTaikoDaniDojo.Web.Worker;
 
@@ -16,7 +17,6 @@ public class BeatmapResultPollingWorker(
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
     private readonly string _sessionId = sessionId;
     private readonly ExamSessionContext _examSessionContext = examSessionContext;
-    private bool _isStatusValid;
 
     protected override async Task Execute()
     {
@@ -24,7 +24,8 @@ public class BeatmapResultPollingWorker(
 
         if (string.IsNullOrEmpty(accessToken))
         {
-            Cancel();
+            await _examSessionRepository.TerminateAsync(_examSessionContext.ExamSessionId);
+            IsCanceling = true;
             return;
         }
 
@@ -32,20 +33,42 @@ public class BeatmapResultPollingWorker(
 
         var beatmapResultQuery = await _osuMultiplayerRoomService.GetBeatmapResultAsync(
             _examSessionContext.RoomId,
-            _examSessionContext.PlaylistIds[_examSessionContext.LastReachedStage - 1]);
+            _examSessionContext.ExamTracker.CurrentPlaylistId);
 
         if (beatmapResultQuery == null)
         {
             return;
         }
+
+        if (!_examSessionContext.ExamTracker.Judge(beatmapResultQuery))
+        {
+            await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
+        }
+        else if (_examSessionContext.ExamTracker.IsEnded)
+        {
+            await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
+        }
+        else
+        {
+            await _examSessionRepository.ProceedToNextStageAsync(_examSessionContext.ExamSessionId);
+
+            new PlaylistStatusPollingWorker(
+                    _osuMultiplayerRoomService,
+                    _sessionService,
+                    _examSessionRepository,
+                    _sessionId,
+                    _examSessionContext)
+                .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
+        }
+
+        IsCanceling = true;
     }
 
-    protected override void OnCompleted()
+    protected override async Task OnCompleted()
     {
-        if (!_isStatusValid)
+        if (!IsCanceling)
         {
-            _examSessionRepository.SetNoResponseAsync(_examSessionContext.ExamSessionId);
-            return;
+            await _examSessionRepository.SetNoResponseAsync(_examSessionContext.ExamSessionId);
         }
     }
 }

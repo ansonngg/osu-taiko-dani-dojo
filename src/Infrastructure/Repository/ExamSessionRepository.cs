@@ -38,6 +38,11 @@ public class ExamSessionRepository(Client database) : IExamSessionRepository
         await _EndAsync(examSessionId, "time_out");
     }
 
+    public async Task DisqualifyAsync(int examSessionId)
+    {
+        await _EndAsync(examSessionId, "disqualified");
+    }
+
     public async Task SetNoResponseAsync(int examSessionId)
     {
         await _EndAsync(examSessionId, "no_response");

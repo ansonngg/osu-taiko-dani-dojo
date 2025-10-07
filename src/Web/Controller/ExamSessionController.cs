@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.System;
 using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Response;
@@ -85,11 +86,9 @@ public class ExamSessionController(
         var examSessionContext = new ExamSessionContext
         {
             ExamSessionId = examSessionQuery.ExamSessionId,
-            StartedAt = examSessionQuery.StartedAt,
             RoomId = multiplayerRoomQuery.RoomId,
-            PlaylistIds = roomPlaylistQuery.PlaylistIds[^examQuery.BeatmapIds.Length..],
-            TotalLengths = roomPlaylistQuery.TotalLengths[^examQuery.BeatmapIds.Length..],
-            ExamQuery = examQuery
+            StartedAt = examSessionQuery.StartedAt,
+            ExamTracker = new ExamTracker(examQuery, roomPlaylistQuery.PlaylistIds, roomPlaylistQuery.TotalLengths)
         };
 
         _memoryCache.SetTyped(examSessionQuery.ExamSessionId, examSessionContext, ExamSessionExpiry);

@@ -17,7 +17,6 @@ public class PlaylistStatusPollingWorker(
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
     private readonly string _sessionId = sessionId;
     private readonly ExamSessionContext _examSessionContext = examSessionContext;
-    private bool _isStatusValid;
 
     protected override async Task Execute()
     {
@@ -25,7 +24,8 @@ public class PlaylistStatusPollingWorker(
 
         if (string.IsNullOrEmpty(accessToken))
         {
-            Cancel();
+            await _examSessionRepository.TerminateAsync(_examSessionContext.ExamSessionId);
+            IsCanceling = true;
             return;
         }
 
@@ -34,12 +34,11 @@ public class PlaylistStatusPollingWorker(
 
         if (multiplayerRoomQuery.RoomId != _examSessionContext.RoomId
             || !multiplayerRoomQuery.IsActive
-            || multiplayerRoomQuery.CurrentPlaylistId
-            != _examSessionContext.PlaylistIds[_examSessionContext.LastReachedStage - 1]
-            || multiplayerRoomQuery.CurrentBeatmapId
-            != _examSessionContext.ExamQuery.BeatmapIds[_examSessionContext.LastReachedStage - 1])
+            || multiplayerRoomQuery.CurrentPlaylistId != _examSessionContext.ExamTracker.CurrentPlaylistId
+            || multiplayerRoomQuery.CurrentBeatmapId != _examSessionContext.ExamTracker.CurrentBeatmapId)
         {
-            Cancel();
+            await _examSessionRepository.DisqualifyAsync(_examSessionContext.ExamSessionId);
+            IsCanceling = true;
             return;
         }
 
@@ -50,29 +49,30 @@ public class PlaylistStatusPollingWorker(
 
         if (multiplayerRoomQuery.LastPlayedAt >= _examSessionContext.StartedAt)
         {
-            _isStatusValid = true;
+            new BeatmapResultPollingWorker(
+                    _osuMultiplayerRoomService,
+                    _sessionService,
+                    _examSessionRepository,
+                    _sessionId,
+                    _examSessionContext)
+                .Run(
+                    ClientConst.OsuPollingInterval,
+                    ClientConst.OsuPollingDuration,
+                    TimeSpan.FromSeconds(_examSessionContext.ExamTracker.CurrentBeatmapLength));
+        }
+        else
+        {
+            await _examSessionRepository.DisqualifyAsync(_examSessionContext.ExamSessionId);
         }
 
-        Cancel();
+        IsCanceling = true;
     }
 
-    protected override void OnCompleted()
+    protected override async Task OnCompleted()
     {
-        if (!_isStatusValid)
+        if (!IsCanceling)
         {
-            _examSessionRepository.SetTimeOutAsync(_examSessionContext.ExamSessionId);
-            return;
+            await _examSessionRepository.SetTimeOutAsync(_examSessionContext.ExamSessionId);
         }
-
-        new BeatmapResultPollingWorker(
-                _osuMultiplayerRoomService,
-                _sessionService,
-                _examSessionRepository,
-                _sessionId,
-                _examSessionContext)
-            .Run(
-                ClientConst.OsuPollingInterval,
-                ClientConst.OsuPollingDuration,
-                TimeSpan.FromSeconds(_examSessionContext.TotalLengths[_examSessionContext.LastReachedStage - 1]));
     }
 }

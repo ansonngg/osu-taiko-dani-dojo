@@ -1,12 +1,12 @@
 ﻿using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Application.Query;
 using OsuTaikoDaniDojo.Infrastructure.Response;
-using OsuTaikoDaniDojo.Infrastructure.Utility;
 
 namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
@@ -31,7 +31,7 @@ public class OsuAuthService : IOsuAuthService
             throw new NullReferenceException("Base address is null.");
         }
 
-        var queryParams = new Dictionary<string, string>
+        var queryParams = new Dictionary<string, string?>
         {
             ["client_id"] = _osuOptions.ClientId,
             ["redirect_uri"] = _osuOptions.RedirectUri,
@@ -40,7 +40,7 @@ public class OsuAuthService : IOsuAuthService
         };
 
         var authorizeUrl = new Uri(_httpClient.BaseAddress, "oauth/authorize").AbsoluteUri;
-        return authorizeUrl.ParameterizedWith(queryParams);
+        return QueryHelpers.AddQueryString(authorizeUrl, queryParams);
     }
 
     public async Task<TokenQuery> ExchangeTokenAsync(string code)

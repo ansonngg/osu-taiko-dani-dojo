@@ -6,13 +6,13 @@ using OsuTaikoDaniDojo.Application.Options;
 namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
 public class HybridSessionService(
-    IMemoryCache memoryCache,
     RedisSessionService redisSessionService,
-    IOptions<SessionOptions> sessionOptions)
+    IOptions<SessionOptions> sessionOptions,
+    IMemoryCache memoryCache)
     : ISessionService
 {
-    private readonly IMemoryCache _memoryCache = memoryCache;
     private readonly RedisSessionService _redisSessionService = redisSessionService;
+    private readonly IMemoryCache _memoryCache = memoryCache;
 
     private readonly TimeSpan _memoryCacheSessionExpiry
         = TimeSpan.FromMinutes(sessionOptions.Value.MemoryCacheExpiryInMinute);

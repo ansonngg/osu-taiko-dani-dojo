@@ -36,6 +36,7 @@ public static class DependencyInjection
     {
         services.AddHttpClient<RedisSessionService>();
         services.AddHttpClient<IOsuAuthService, OsuAuthService>();
+        services.AddHttpClient<IOsuMultiplayerRoomService, OsuMultiplayerRoomService>();
         services.AddSingleton<ISessionService, HybridSessionService>();
     }
 

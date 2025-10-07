@@ -155,8 +155,9 @@ public class ExamSessionController(
         Response.ContentType = "text/event-stream";
         Response.Headers.CacheControl = "no-cache";
         Response.Headers.Connection = "keep-alive";
+        await _SendExamSessionStreamAsync(examSessionId, examSessionContext);
+
         var status = examSessionContext.Status;
-        await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
         var timer = new PeriodicTimer(ExamSessionStatusCheckInterval);
 
         try
@@ -171,14 +172,11 @@ public class ExamSessionController(
                     continue;
                 }
 
+                await _SendExamSessionStreamAsync(examSessionId, examSessionContext);
                 status = examSessionContext.Status;
-                await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
             }
 
-            await _SendExamSessionStreamAsync(
-                examSessionId,
-                examSessionContext.ExamTracker.CurrentStage,
-                examSessionContext.Status);
+            await _SendExamSessionStreamAsync(examSessionId, examSessionContext);
         }
         catch (OperationCanceledException)
         {
@@ -186,15 +184,21 @@ public class ExamSessionController(
         }
     }
 
-    private async Task _SendExamSessionStreamAsync(int examSessionId, int stage, ExamSessionStatus status)
+    private async Task _SendExamSessionStreamAsync(int examSessionId, ExamSessionContext examSessionContext)
     {
-        var maxWaitingTime = status == ExamSessionStatus.Waiting ? (int?)ClientConst.OsuPollingDuration.Seconds : null;
+        int? maxWaitingTime = examSessionContext.Status switch
+        {
+            ExamSessionStatus.Waiting => ClientConst.OsuPollingDuration.Seconds,
+            ExamSessionStatus.Playing => examSessionContext.ExamTracker.CurrentBeatmapLength
+                                         + ClientConst.OsuPollingDuration.Seconds,
+            _ => null
+        };
 
         var payload = JsonSerializer.Serialize(
             new
             {
-                stage,
-                status = status.ToString(),
+                examSessionContext.ExamTracker.CurrentStage,
+                status = examSessionContext.Status.ToString(),
                 max_waiting_time = maxWaitingTime
             });
 

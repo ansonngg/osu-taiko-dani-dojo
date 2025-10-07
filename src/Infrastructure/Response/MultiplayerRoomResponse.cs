@@ -7,6 +7,9 @@ public class MultiplayerRoomResponse
     [JsonPropertyName("id")]
     public int Id { get; init; }
 
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = string.Empty;
+
     [JsonPropertyName("active")]
     public bool Active { get; init; }
 
@@ -15,6 +18,12 @@ public class MultiplayerRoomResponse
 
     [JsonPropertyName("playlist")]
     public PlaylistResponse[] Playlist { get; init; } = [];
+
+    [JsonPropertyName("playlist_item_stats")]
+    public PlaylistStatsResponse PlaylistItemStats { get; init; } = new();
+
+    [JsonPropertyName("recent_participants")]
+    public ParticipantResponse[] RecentParticipants { get; init; } = [];
 }
 
 public class PlaylistResponse
@@ -36,4 +45,16 @@ public class BeatmapResponse
 
     [JsonPropertyName("total_length")]
     public int TotalLength { get; init; }
+}
+
+public class PlaylistStatsResponse
+{
+    [JsonPropertyName("count_active")]
+    public int CountActive { get; init; }
+}
+
+public class ParticipantResponse
+{
+    [JsonPropertyName("id")]
+    public int Id { get; init; }
 }

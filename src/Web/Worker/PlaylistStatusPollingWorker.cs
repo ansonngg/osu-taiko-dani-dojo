@@ -20,9 +20,9 @@ public class PlaylistStatusPollingWorker(
 
     protected override async Task Execute()
     {
-        var accessToken = (await _sessionService.GetSessionAsync<SessionContext>(_sessionId))?.AccessToken;
+        var sessionContext = await _sessionService.GetSessionAsync<SessionContext>(_sessionId);
 
-        if (string.IsNullOrEmpty(accessToken))
+        if (sessionContext == null)
         {
             await _examSessionRepository.TerminateAsync(_examSessionContext.ExamSessionId);
             _examSessionContext.Status = ExamSessionStatus.Terminated;
@@ -30,10 +30,11 @@ public class PlaylistStatusPollingWorker(
             return;
         }
 
-        _osuMultiplayerRoomService.SetAuthenticationHeader(accessToken);
-        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync();
+        _osuMultiplayerRoomService.SetAuthenticationHeader(sessionContext.AccessToken);
+        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(sessionContext.UserId);
 
-        if (multiplayerRoomQuery.RoomId != _examSessionContext.RoomId
+        if (multiplayerRoomQuery == null
+            || multiplayerRoomQuery.RoomId != _examSessionContext.RoomId
             || !multiplayerRoomQuery.IsActive
             || multiplayerRoomQuery.CurrentPlaylistId != _examSessionContext.ExamTracker.CurrentPlaylistId
             || multiplayerRoomQuery.CurrentBeatmapId != _examSessionContext.ExamTracker.CurrentBeatmapId)
@@ -44,31 +45,23 @@ public class PlaylistStatusPollingWorker(
             return;
         }
 
-        if (multiplayerRoomQuery.LastPlayedAt == null)
+        if (multiplayerRoomQuery.Status == "idle")
         {
             return;
         }
 
-        if (multiplayerRoomQuery.LastPlayedAt >= _examSessionContext.StartedAt)
-        {
-            _examSessionContext.Status = ExamSessionStatus.Playing;
+        _examSessionContext.Status = ExamSessionStatus.Playing;
 
-            new BeatmapResultPollingWorker(
-                    _osuMultiplayerRoomService,
-                    _sessionService,
-                    _examSessionRepository,
-                    _sessionId,
-                    _examSessionContext)
-                .Run(
-                    ClientConst.OsuPollingInterval,
-                    ClientConst.OsuPollingDuration,
-                    TimeSpan.FromSeconds(_examSessionContext.ExamTracker.CurrentBeatmapLength));
-        }
-        else
-        {
-            await _examSessionRepository.DisqualifyAsync(_examSessionContext.ExamSessionId);
-            _examSessionContext.Status = ExamSessionStatus.Disqualified;
-        }
+        new BeatmapResultPollingWorker(
+                _osuMultiplayerRoomService,
+                _sessionService,
+                _examSessionRepository,
+                _sessionId,
+                _examSessionContext)
+            .Run(
+                ClientConst.OsuPollingInterval,
+                ClientConst.OsuPollingDuration,
+                TimeSpan.FromSeconds(_examSessionContext.ExamTracker.CurrentBeatmapLength));
 
         Cancel();
     }

@@ -10,7 +10,7 @@ public class ExamSessionRepository(Client database) : IExamSessionRepository
 {
     private readonly Client _database = database;
 
-    public async Task<ExamSessionQuery> CreateAsync(int osuId, int grade)
+    public async Task<int> CreateAsync(int osuId, int grade)
     {
         var response = await _database
             .From<ExamSession>()
@@ -18,9 +18,7 @@ public class ExamSessionRepository(Client database) : IExamSessionRepository
                 new ExamSession { OsuId = osuId, Grade = grade },
                 new QueryOptions { Returning = QueryOptions.ReturnType.Representation });
 
-        return response.Model != null
-            ? new ExamSessionQuery { ExamSessionId = response.Model.Id, StartedAt = response.Model.StartedAt }
-            : throw new NullReferenceException("Returned exam session is null.");
+        return response.Model?.Id ?? throw new NullReferenceException("Returned exam session is null.");
     }
 
     public async Task ProceedToNextStageAsync(int examSessionId)

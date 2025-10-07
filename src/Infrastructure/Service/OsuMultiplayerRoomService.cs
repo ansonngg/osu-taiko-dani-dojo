@@ -22,7 +22,7 @@ public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
-    public async Task<MultiplayerRoomQuery> GetMostRecentActiveRoomAsync()
+    public async Task<MultiplayerRoomQuery?> GetMostRecentActiveRoomAsync(int userId)
     {
         var queryParams = new Dictionary<string, string?>
         {
@@ -41,13 +41,20 @@ public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
             throw new NullReferenceException("Multiplayer room response array is null.");
         }
 
+        if (multiplayerRoomResponses[0].RecentParticipants is not { Length: > 0 }
+            || multiplayerRoomResponses[0].RecentParticipants.All(x => x.Id != userId))
+        {
+            return null;
+        }
+
         return new MultiplayerRoomQuery
         {
             RoomId = multiplayerRoomResponses[0].Id,
+            Status = multiplayerRoomResponses[0].Status,
             IsActive = multiplayerRoomResponses[0].Active,
             CurrentPlaylistId = multiplayerRoomResponses[0].CurrentPlaylistItem.Id,
-            LastPlayedAt = multiplayerRoomResponses[0].CurrentPlaylistItem.PlayedAt,
-            CurrentBeatmapId = multiplayerRoomResponses[0].CurrentPlaylistItem.Beatmap.Id
+            CurrentBeatmapId = multiplayerRoomResponses[0].CurrentPlaylistItem.Beatmap.Id,
+            ActivePlaylistCount = multiplayerRoomResponses[0].PlaylistItemStats.CountActive
         };
     }
 

@@ -21,6 +21,12 @@ public class ExamTracker
     public ExamTracker(ExamQuery examQuery, int[] playlistIds, int[] totalLengths)
     {
         _specificCriteriaArray = new ExamCriteria[examQuery.BeatmapIds.Length];
+
+        for (var i = 0; i < _specificCriteriaArray.Length; i++)
+        {
+            _specificCriteriaArray[i] = new ExamCriteria();
+        }
+
         _playlistIds = playlistIds;
         _beatmapIds = examQuery.BeatmapIds;
         _totalLengths = totalLengths;
@@ -64,7 +70,7 @@ public class ExamTracker
         }
     }
 
-    public int CurrentStage => _currentStage + 1;
+    public int CurrentStage => Math.Min(_currentStage + 1, _beatmapIds.Length);
     public int CurrentPlaylistId => _currentStage < _playlistIds.Length ? _playlistIds[_currentStage] : 0;
     public int CurrentBeatmapId => _currentStage < _beatmapIds.Length ? _beatmapIds[_currentStage] : 0;
     public int CurrentBeatmapLength => _currentStage < _totalLengths.Length ? _totalLengths[_currentStage] : 0;

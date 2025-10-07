@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.System;
@@ -17,7 +18,8 @@ public class ExamSessionController(
     ISessionService sessionService,
     IExamRepository examRepository,
     IExamSessionRepository examSessionRepository,
-    IMemoryCache memoryCache)
+    IMemoryCache memoryCache,
+    ILogger<ExamSessionController> logger)
     : ControllerBase
 {
     private static readonly TimeSpan ExamSessionExpiry = TimeSpan.FromMinutes(60);
@@ -27,6 +29,7 @@ public class ExamSessionController(
     private readonly IExamRepository _examRepository = examRepository;
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
     private readonly IMemoryCache _memoryCache = memoryCache;
+    private readonly ILogger<ExamSessionController> _logger = logger;
 
     [HttpPost("grade/{grade:int}")]
     public async Task<IActionResult> StartExamSession(int grade)
@@ -53,11 +56,16 @@ public class ExamSessionController(
         }
 
         _osuMultiplayerRoomService.SetAuthenticationHeader(sessionContext.AccessToken);
-        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync();
+        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(sessionContext.UserId);
 
-        if (!multiplayerRoomQuery.IsActive)
+        if (multiplayerRoomQuery is not { IsActive: true } || multiplayerRoomQuery.Status != "idle")
         {
             return BadRequest(new ExamSessionResponse { IsRoomActive = false });
+        }
+
+        if (multiplayerRoomQuery.ActivePlaylistCount != examQuery.BeatmapIds.Length)
+        {
+            return BadRequest(new ExamSessionResponse { IsRoomActive = true });
         }
 
         var roomPlaylistQuery = await _osuMultiplayerRoomService.GetRoomPlaylistAsync(multiplayerRoomQuery.RoomId);
@@ -82,17 +90,20 @@ public class ExamSessionController(
             return BadRequest(new ExamSessionResponse { IsRoomActive = true, IsPlaylistCorrect = isPlaylistCorrect });
         }
 
-        var examSessionQuery = await _examSessionRepository.CreateAsync(sessionContext.UserId, grade);
+        var examSessionId = await _examSessionRepository.CreateAsync(sessionContext.UserId, grade);
 
         var examSessionContext = new ExamSessionContext
         {
-            ExamSessionId = examSessionQuery.ExamSessionId,
+            ExamSessionId = examSessionId,
+            UserId = sessionContext.UserId,
             RoomId = multiplayerRoomQuery.RoomId,
-            StartedAt = examSessionQuery.StartedAt,
-            ExamTracker = new ExamTracker(examQuery, roomPlaylistQuery.PlaylistIds, roomPlaylistQuery.TotalLengths)
+            ExamTracker = new ExamTracker(
+                examQuery,
+                roomPlaylistQuery.PlaylistIds[^examQuery.BeatmapIds.Length..],
+                roomPlaylistQuery.TotalLengths[^examQuery.BeatmapIds.Length..])
         };
 
-        _memoryCache.SetTyped(examSessionQuery.ExamSessionId, examSessionContext, ExamSessionExpiry);
+        _memoryCache.SetTyped(examSessionId, examSessionContext, ExamSessionExpiry);
 
         new PlaylistStatusPollingWorker(
                 _osuMultiplayerRoomService,
@@ -105,18 +116,19 @@ public class ExamSessionController(
         return Ok(
             new ExamSessionResponse
             {
-                Id = examSessionQuery.ExamSessionId,
+                Id = examSessionId,
                 IsRoomActive = true,
                 IsPlaylistCorrect = isPlaylistCorrect
             });
     }
 
     [HttpGet("{examSessionId:int}")]
-    public async Task<IActionResult> GetExamSessionEvent(int examSessionId)
+    public async Task GetExamSessionEvent(int examSessionId)
     {
         if (!_memoryCache.TryGetTyped<ExamSessionContext>(examSessionId, out var examSessionContext))
         {
-            return NotFound();
+            Response.StatusCode = 404;
+            return;
         }
 
         if (examSessionContext == null)
@@ -124,40 +136,70 @@ public class ExamSessionController(
             throw new NullReferenceException("Exam session context is null.");
         }
 
-        Response.Headers.Append("Content-Type", "text/event-stream");
+        var sessionId = Request.Cookies[ClientConst.SessionIdCookieName];
+
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            Response.StatusCode = 401;
+            return;
+        }
+
+        var sessionContext = await _sessionService.GetSessionAsync<SessionContext>(sessionId);
+
+        if (sessionContext == null || sessionContext.UserId != examSessionContext.UserId)
+        {
+            Response.StatusCode = 401;
+            return;
+        }
+
+        Response.ContentType = "text/event-stream";
+        Response.Headers.CacheControl = "no-cache";
+        Response.Headers.Connection = "keep-alive";
         var status = examSessionContext.Status;
         await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
         var timer = new PeriodicTimer(ExamSessionStatusCheckInterval);
 
-        while (await timer.WaitForNextTickAsync()
-               && examSessionContext.Status is ExamSessionStatus.Waiting or ExamSessionStatus.Playing)
+        try
         {
-            if (examSessionContext.Status == status)
+            while (await timer.WaitForNextTickAsync()
+                   && examSessionContext.Status is ExamSessionStatus.Waiting or ExamSessionStatus.Playing)
             {
-                continue;
+                HttpContext.RequestAborted.ThrowIfCancellationRequested();
+
+                if (examSessionContext.Status == status)
+                {
+                    continue;
+                }
+
+                status = examSessionContext.Status;
+                await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
             }
 
-            status = examSessionContext.Status;
-            await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
+            await _SendExamSessionStreamAsync(
+                examSessionId,
+                examSessionContext.ExamTracker.CurrentStage,
+                examSessionContext.Status);
         }
-
-        await _SendExamSessionStreamAsync(examSessionId, examSessionContext.ExamTracker.CurrentStage, status);
-        return Ok();
+        catch (OperationCanceledException)
+        {
+            _logger.LogInformation("Client disconnected from exam session {ExamSessionId}.", examSessionId);
+        }
     }
 
     private async Task _SendExamSessionStreamAsync(int examSessionId, int stage, ExamSessionStatus status)
     {
-        var maxWaitingTime = status == ExamSessionStatus.Waiting ? ClientConst.OsuPollingDuration.Seconds + "s" : "N/A";
+        var maxWaitingTime = status == ExamSessionStatus.Waiting ? (int?)ClientConst.OsuPollingDuration.Seconds : null;
 
-        await Response.WriteAsync(
-            $"""
-             id: {examSessionId}
-             stage: {stage}
-             status: {status.ToString()}
-             max_waiting_time: {maxWaitingTime}
+        var payload = JsonSerializer.Serialize(
+            new
+            {
+                stage,
+                status = status.ToString(),
+                max_waiting_time = maxWaitingTime
+            });
 
-             """);
-
+        await Response.WriteAsync($"id: {examSessionId}\n");
+        await Response.WriteAsync($"data: {payload}\n\n");
         await Response.Body.FlushAsync();
     }
 }

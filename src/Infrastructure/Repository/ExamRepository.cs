@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Query;
+using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Infrastructure.Model;
 using Supabase;
 
@@ -13,7 +14,7 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
 
     public async Task<ExamQuery?> GetExamByGradeAsync(int grade)
     {
-        if (_memoryCache.TryGetValue(_ExamQueryKey(grade), out ExamQuery? examQuery))
+        if (_memoryCache.TryGetTyped(grade, out ExamQuery? examQuery))
         {
             return examQuery;
         }
@@ -42,9 +43,7 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
             GeneralHitCount = response.GeneralHitCount ?? 0
         };
 
-        _memoryCache.Set(_ExamQueryKey(grade), examQuery);
+        _memoryCache.SetTyped(grade, examQuery);
         return examQuery;
     }
-
-    private static string _ExamQueryKey(int grade) => $"Exam{grade}";
 }

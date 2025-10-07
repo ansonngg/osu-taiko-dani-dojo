@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Response;
 using OsuTaikoDaniDojo.Web.Utility;
+using OsuTaikoDaniDojo.Web.Worker;
 
 namespace OsuTaikoDaniDojo.Web.Controller;
 
@@ -12,13 +15,16 @@ public class ExamSessionController(
     IOsuMultiplayerRoomService osuMultiplayerRoomService,
     ISessionService sessionService,
     IExamRepository examRepository,
-    IExamSessionRepository examSessionRepository)
+    IExamSessionRepository examSessionRepository,
+    IMemoryCache memoryCache)
     : ControllerBase
 {
+    private static readonly TimeSpan ExamSessionExpiry = TimeSpan.FromMinutes(60);
     private readonly IOsuMultiplayerRoomService _osuMultiplayerRoomService = osuMultiplayerRoomService;
     private readonly ISessionService _sessionService = sessionService;
     private readonly IExamRepository _examRepository = examRepository;
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
+    private readonly IMemoryCache _memoryCache = memoryCache;
 
     [HttpPost("grade/{grade:int}")]
     public async Task<IActionResult> StartExamSession(int grade)
@@ -47,7 +53,7 @@ public class ExamSessionController(
         _osuMultiplayerRoomService.SetAuthenticationHeader(sessionContext.AccessToken);
         var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync();
 
-        if (multiplayerRoomQuery == null)
+        if (!multiplayerRoomQuery.IsActive)
         {
             return BadRequest(new ExamSessionResponse { IsRoomActive = false });
         }
@@ -74,12 +80,32 @@ public class ExamSessionController(
             return BadRequest(new ExamSessionResponse { IsRoomActive = true, IsPlaylistCorrect = isPlaylistCorrect });
         }
 
-        var examSessionId = await _examSessionRepository.CreateAsync(sessionContext.UserId, grade);
+        var examSessionQuery = await _examSessionRepository.CreateAsync(sessionContext.UserId, grade);
+
+        var examSessionContext = new ExamSessionContext
+        {
+            ExamSessionId = examSessionQuery.ExamSessionId,
+            StartedAt = examSessionQuery.StartedAt,
+            RoomId = multiplayerRoomQuery.RoomId,
+            PlaylistIds = roomPlaylistQuery.PlaylistIds[^examQuery.BeatmapIds.Length..],
+            TotalLengths = roomPlaylistQuery.TotalLengths[^examQuery.BeatmapIds.Length..],
+            ExamQuery = examQuery
+        };
+
+        _memoryCache.SetTyped(examSessionQuery.ExamSessionId, examSessionContext, ExamSessionExpiry);
+
+        new PlaylistStatusPollingWorker(
+                _osuMultiplayerRoomService,
+                _sessionService,
+                _examSessionRepository,
+                sessionId,
+                examSessionContext)
+            .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
 
         return Ok(
             new ExamSessionResponse
             {
-                Id = examSessionId,
+                Id = examSessionQuery.ExamSessionId,
                 IsRoomActive = true,
                 IsPlaylistCorrect = isPlaylistCorrect
             });

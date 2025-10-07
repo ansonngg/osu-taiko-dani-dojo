@@ -5,6 +5,7 @@ namespace OsuTaikoDaniDojo.Application.Interface;
 public interface IOsuMultiplayerRoomService
 {
     void SetAuthenticationHeader(string accessToken);
-    Task<MultiplayerRoomQuery?> GetMostRecentActiveRoomAsync();
+    Task<MultiplayerRoomQuery> GetMostRecentActiveRoomAsync();
     Task<RoomPlaylistQuery> GetRoomPlaylistAsync(int roomId);
+    Task<BeatmapResultQuery?> GetBeatmapResultAsync(int roomId, int playlistId);
 }

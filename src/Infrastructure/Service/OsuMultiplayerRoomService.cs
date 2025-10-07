@@ -22,7 +22,7 @@ public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
-    public async Task<MultiplayerRoomQuery?> GetMostRecentActiveRoomAsync()
+    public async Task<MultiplayerRoomQuery> GetMostRecentActiveRoomAsync()
     {
         var queryParams = new Dictionary<string, string?>
         {
@@ -41,9 +41,14 @@ public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
             throw new NullReferenceException("Multiplayer room response array is null.");
         }
 
-        return multiplayerRoomResponses[0].Active
-            ? new MultiplayerRoomQuery { RoomId = multiplayerRoomResponses[0].Id }
-            : null;
+        return new MultiplayerRoomQuery
+        {
+            RoomId = multiplayerRoomResponses[0].Id,
+            IsActive = multiplayerRoomResponses[0].Active,
+            CurrentPlaylistId = multiplayerRoomResponses[0].CurrentPlaylistItem.Id,
+            LastPlayedAt = multiplayerRoomResponses[0].CurrentPlaylistItem.PlayedAt,
+            CurrentBeatmapId = multiplayerRoomResponses[0].CurrentPlaylistItem.Beatmap.Id
+        };
     }
 
     public async Task<RoomPlaylistQuery> GetRoomPlaylistAsync(int roomId)
@@ -75,6 +80,37 @@ public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
             PlaylistIds = playlistIds,
             BeatmapIds = beatmapIds,
             TotalLengths = totalLengths
+        };
+    }
+
+    public async Task<BeatmapResultQuery?> GetBeatmapResultAsync(int roomId, int playlistId)
+    {
+        var requestUri = $"{roomId}/playlist/{playlistId}/scores";
+        var queryParams = new Dictionary<string, string?> { ["limit"] = "1" };
+        var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(requestUri, queryParams));
+        response.EnsureSuccessStatusCode();
+        var playlistResultResponse = await response.Content.ReadFromJsonAsync<PlaylistResultResponse>();
+
+        if (playlistResultResponse == null)
+        {
+            throw new NullReferenceException("Playlist result response is null.");
+        }
+
+        if (playlistResultResponse.UserScore == null)
+        {
+            return null;
+        }
+
+        var statistics = playlistResultResponse.UserScore.Statistics;
+
+        return new BeatmapResultQuery
+        {
+            GreatCount = statistics.Great,
+            OkCount = statistics.Ok,
+            MissCount = statistics.Miss,
+            LargeBonusCount = statistics.LargeBonus,
+            MaxCombo = playlistResultResponse.UserScore.MaxCombo,
+            HitCount = statistics.Great + statistics.Ok + statistics.SmallBonus
         };
     }
 }

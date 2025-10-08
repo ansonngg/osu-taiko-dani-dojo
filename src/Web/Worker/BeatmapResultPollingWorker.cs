@@ -32,7 +32,12 @@ public class BeatmapResultPollingWorker(
             return;
         }
 
-        if (!_examSessionContext.ExamTracker.Judge(beatmapResultQuery))
+        if (beatmapResultQuery.HasMods)
+        {
+            await _examSessionRepository.DisqualifyAsync(_examSessionContext.ExamSessionId);
+            _examSessionContext.Status = ExamSessionStatus.Disqualified;
+        }
+        else if (!_examSessionContext.ExamTracker.Judge(beatmapResultQuery))
         {
             await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
             _examSessionContext.Status = ExamSessionStatus.Failed;

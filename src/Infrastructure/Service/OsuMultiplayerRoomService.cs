@@ -109,7 +109,8 @@ public class OsuMultiplayerRoomService(HttpClient httpClient) : IOsuMultiplayerR
             MissCount = statistics.Miss,
             LargeBonusCount = statistics.LargeBonus,
             MaxCombo = playlistResultResponse.UserScore.MaxCombo,
-            HitCount = statistics.Great + statistics.Ok + statistics.SmallBonus
+            HitCount = statistics.Great + statistics.Ok + statistics.SmallBonus,
+            HasMods = playlistResultResponse.UserScore.Mods is { Length: > 0 }
         };
     }
 

@@ -5,19 +5,26 @@ namespace OsuTaikoDaniDojo.Infrastructure.Response;
 public class PlaylistResultResponse
 {
     [JsonPropertyName("user_score")]
-    public Score? UserScore { get; init; }
+    public ScoreResposne? UserScore { get; init; }
 }
 
-public class Score
+public class ScoreResposne
 {
+    [JsonPropertyName("mods")]
+    public ModResponse[] Mods { get; init; } = [];
+
     [JsonPropertyName("statistics")]
-    public Statistics Statistics { get; init; } = new();
+    public StatisticsResponse Statistics { get; init; } = new();
 
     [JsonPropertyName("max_combo")]
     public int MaxCombo { get; init; }
 }
 
-public class Statistics
+public class ModResponse
+{
+}
+
+public class StatisticsResponse
 {
     [JsonPropertyName("great")]
     public int Great { get; init; }

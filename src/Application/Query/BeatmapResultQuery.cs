@@ -8,4 +8,5 @@ public class BeatmapResultQuery
     public int LargeBonusCount { get; init; }
     public int MaxCombo { get; init; }
     public int HitCount { get; init; }
+    public bool HasMods { get; init; }
 }

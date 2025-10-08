@@ -13,7 +13,7 @@ public class Exam : BaseModel
     public int Grade { get; init; }
 
     [Column("beatmap_ids")]
-    public int[]? BeatmapIds { get; init; }
+    public int[] BeatmapIds { get; init; } = [];
 
     [Column("specific_great_counts")]
     public int[]? SpecificGreatCounts { get; init; }

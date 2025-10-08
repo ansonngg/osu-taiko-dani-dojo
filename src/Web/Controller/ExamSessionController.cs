@@ -33,7 +33,7 @@ public class ExamSessionController(
     [HttpPost("grade/{grade:int}")]
     public async Task<IActionResult> StartExamSession(int grade)
     {
-        var examQuery = await _examRepository.GetExamByGradeAsync(grade);
+        var examQuery = await _examRepository.GetByGradeAsync(grade);
 
         if (examQuery == null)
         {

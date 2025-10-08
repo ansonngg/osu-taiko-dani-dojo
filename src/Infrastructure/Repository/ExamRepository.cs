@@ -12,7 +12,7 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
     private readonly Client _database = database;
     private readonly IMemoryCache _memoryCache = memoryCache;
 
-    public async Task<ExamQuery?> GetExamByGradeAsync(int grade)
+    public async Task<ExamQuery?> GetByGradeAsync(int grade)
     {
         if (_memoryCache.TryGetTyped(grade, out ExamQuery? examQuery))
         {
@@ -28,7 +28,7 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
 
         examQuery = new ExamQuery
         {
-            BeatmapIds = response.BeatmapIds ?? [],
+            BeatmapIds = response.BeatmapIds,
             SpecificGreatCounts = response.SpecificGreatCounts,
             SpecificOkCounts = response.SpecificOkCounts,
             SpecificMissCounts = response.SpecificMissCounts,
@@ -45,5 +45,29 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
 
         _memoryCache.SetTyped(grade, examQuery);
         return examQuery;
+    }
+
+    public async Task CreateAsync(int grade, ExamQuery examQuery)
+    {
+        var response = await _database
+            .From<Exam>()
+            .Insert(
+                new Exam
+                {
+                    Grade = grade,
+                    BeatmapIds = examQuery.BeatmapIds,
+                    SpecificGreatCounts = examQuery.SpecificGreatCounts,
+                    SpecificOkCounts = examQuery.SpecificOkCounts,
+                    SpecificMissCounts = examQuery.SpecificMissCounts,
+                    SpecificLargeBonusCounts = examQuery.SpecificLargeBonusCounts,
+                    SpecificMaxCombos = examQuery.SpecificMaxCombos,
+                    SpecificHitCounts = examQuery.SpecificHitCounts,
+                    GeneralGreatCounts = examQuery.GeneralGreatCounts,
+                    GeneralOkCounts = examQuery.GeneralOkCounts,
+                    GeneralMissCounts = examQuery.GeneralMissCounts,
+                    GeneralLargeBonusCounts = examQuery.GeneralLargeBonusCounts,
+                    GeneralMaxCombos = examQuery.GeneralMaxCombos,
+                    GeneralHitCounts = examQuery.GeneralHitCounts
+                });
     }
 }

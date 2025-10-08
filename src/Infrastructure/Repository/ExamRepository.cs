@@ -49,7 +49,7 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
 
     public async Task CreateAsync(int grade, ExamQuery examQuery)
     {
-        var response = await _database
+        await _database
             .From<Exam>()
             .Insert(
                 new Exam

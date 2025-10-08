@@ -1,7 +1,10 @@
-﻿namespace OsuTaikoDaniDojo.Application.Interface;
+﻿using OsuTaikoDaniDojo.Application.Query;
+
+namespace OsuTaikoDaniDojo.Application.Interface;
 
 public interface IUserRepository
 {
-    Task<string?> GetUserRoleAsync(int osuId);
-    Task<string> CreateAsync(int osuId);
+    Task<UserRoleQuery?> GetUserRoleAsync(int osuId);
+    Task<UserRoleQuery> CreateAsync(int osuId);
+    Task UpdateHighestGradeCertificateAsync(int userId, int gradeCertificateId);
 }

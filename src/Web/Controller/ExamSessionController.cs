@@ -18,6 +18,8 @@ public class ExamSessionController(
     IOsuMultiplayerRoomService osuMultiplayerRoomService,
     IExamRepository examRepository,
     IExamSessionRepository examSessionRepository,
+    IGradeCertificateRepository gradeCertificateRepository,
+    IUserRepository userRepository,
     IMemoryCache memoryCache,
     ILogger<ExamSessionController> logger)
     : ControllerBase
@@ -27,6 +29,8 @@ public class ExamSessionController(
     private readonly IOsuMultiplayerRoomService _osuMultiplayerRoomService = osuMultiplayerRoomService;
     private readonly IExamRepository _examRepository = examRepository;
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
+    private readonly IGradeCertificateRepository _gradeCertificateRepository = gradeCertificateRepository;
+    private readonly IUserRepository _userRepository = userRepository;
     private readonly IMemoryCache _memoryCache = memoryCache;
     private readonly ILogger<ExamSessionController> _logger = logger;
 
@@ -43,12 +47,13 @@ public class ExamSessionController(
         var accessToken = User.FindFirstValue(CustomClaimTypes.AccessToken);
 
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            || !int.TryParse(User.FindFirstValue(CustomClaimTypes.OsuId), out var osuId)
             || string.IsNullOrEmpty(accessToken))
         {
             return Unauthorized();
         }
 
-        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(userId);
+        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(osuId);
 
         if (multiplayerRoomQuery is not { IsActive: true } || multiplayerRoomQuery.Status != "idle")
         {
@@ -82,12 +87,14 @@ public class ExamSessionController(
             return BadRequest(new ExamSessionResponse { IsRoomActive = true, IsPlaylistCorrect = isPlaylistCorrect });
         }
 
-        var examSessionId = await _examSessionRepository.CreateAsync(userId, grade);
+        var examSessionId = await _examSessionRepository.CreateAsync(osuId, grade);
 
         var examSessionContext = new ExamSessionContext
         {
             ExamSessionId = examSessionId,
             UserId = userId,
+            OsuId = osuId,
+            Grade = grade,
             RoomId = multiplayerRoomQuery.RoomId,
             ExamTracker = new ExamTracker(
                 examQuery,
@@ -100,7 +107,8 @@ public class ExamSessionController(
         new PlaylistStatusPollingWorker(
                 _osuMultiplayerRoomService,
                 _examSessionRepository,
-                userId,
+                _gradeCertificateRepository,
+                _userRepository,
                 accessToken,
                 examSessionContext)
             .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
@@ -181,9 +189,19 @@ public class ExamSessionController(
         var payload = JsonSerializer.Serialize(
             new
             {
+                osu_id = examSessionContext.OsuId,
+                grade = examSessionContext.Grade,
                 stage = examSessionContext.ExamTracker.CurrentStage,
+                great_counts = examSessionContext.ExamTracker.GreatCounts,
+                ok_counts = examSessionContext.ExamTracker.OkCounts,
+                miss_counts = examSessionContext.ExamTracker.MissCounts,
+                large_bonus_counts = examSessionContext.ExamTracker.LargeBonusCounts,
+                max_combos = examSessionContext.ExamTracker.MaxCombos,
+                hit_counts = examSessionContext.ExamTracker.HitCounts,
                 status = examSessionContext.Status.ToSnakeCase(),
-                max_waiting_time = maxWaitingTime,
+                timeout_at = maxWaitingTime.HasValue
+                    ? (DateTime?)examSessionContext.LastUpdatedAt + TimeSpan.FromSeconds(maxWaitingTime.Value)
+                    : null,
                 pass_level = examSessionContext.Status == ExamSessionStatus.Passed
                     ? (int?)examSessionContext.ExamTracker.PassLevel
                     : null

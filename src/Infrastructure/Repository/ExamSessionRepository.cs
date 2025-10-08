@@ -22,7 +22,7 @@ public class ExamSessionRepository(Client database) : IExamSessionRepository
 
     public async Task ProceedToNextStageAsync(int examSessionId)
     {
-        await _database.Rpc("increment_exam_session_stage", new { exam_session_id = examSessionId });
+        await _database.Rpc("increment_exam_session_stage", new { p_exam_session_id = examSessionId });
     }
 
     public async Task SetCompletedAsync(int examSessionId)

@@ -7,20 +7,24 @@ namespace OsuTaikoDaniDojo.Web.Worker;
 public class PlaylistStatusPollingWorker(
     IOsuMultiplayerRoomService osuMultiplayerRoomService,
     IExamSessionRepository examSessionRepository,
-    int userId,
+    IGradeCertificateRepository gradeCertificateRepository,
+    IUserRepository userRepository,
     string accessToken,
     ExamSessionContext examSessionContext)
     : WorkerBase
 {
     private readonly IOsuMultiplayerRoomService _osuMultiplayerRoomService = osuMultiplayerRoomService;
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
-    private readonly int _userId = userId;
+    private readonly IGradeCertificateRepository _gradeCertificateRepository = gradeCertificateRepository;
+    private readonly IUserRepository _userRepository = userRepository;
     private readonly string _accessToken = accessToken;
     private readonly ExamSessionContext _examSessionContext = examSessionContext;
 
     protected override async Task Execute()
     {
-        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(_userId, _accessToken);
+        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(
+            _examSessionContext.OsuId,
+            _accessToken);
 
         if (multiplayerRoomQuery == null
             || multiplayerRoomQuery.RoomId != _examSessionContext.RoomId
@@ -44,7 +48,8 @@ public class PlaylistStatusPollingWorker(
         new BeatmapResultPollingWorker(
                 _osuMultiplayerRoomService,
                 _examSessionRepository,
-                _userId,
+                _gradeCertificateRepository,
+                _userRepository,
                 _accessToken,
                 _examSessionContext)
             .Run(

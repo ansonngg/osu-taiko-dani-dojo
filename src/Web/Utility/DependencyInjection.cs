@@ -58,6 +58,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<IExamRepository, ExamRepository>();
         services.AddSingleton<IExamSessionRepository, ExamSessionRepository>();
+        services.AddSingleton<IGradeCertificateRepository, GradeCertificateRepository>();
         services.AddSingleton<IUserRepository, UserRepository>();
     }
 

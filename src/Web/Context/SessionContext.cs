@@ -3,6 +3,7 @@
 public class SessionContext
 {
     public int UserId { get; init; }
+    public int OsuId { get; init; }
     public string Role { get; init; } = "user";
     public string AccessToken { get; init; } = string.Empty;
     public string RefreshToken { get; init; } = string.Empty;

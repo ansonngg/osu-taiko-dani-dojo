@@ -36,13 +36,14 @@ public class OAuthController(
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
         var tokenQuery = await _osuAuthService.ExchangeTokenAsync(request.Code);
-        var userId = await _osuAuthService.GetUserIdAsync(tokenQuery.AccessToken);
-        var role = await _userRepository.GetUserRoleAsync(userId) ?? await _userRepository.CreateAsync(userId);
+        var osuId = await _osuAuthService.GetUserIdAsync(tokenQuery.AccessToken);
+        var userRoleQuery = await _userRepository.GetUserRoleAsync(osuId) ?? await _userRepository.CreateAsync(osuId);
 
         var sessionData = new SessionContext
         {
-            UserId = userId,
-            Role = role,
+            UserId = userRoleQuery.UserId,
+            OsuId = osuId,
+            Role = userRoleQuery.Role,
             AccessToken = tokenQuery.AccessToken,
             RefreshToken = tokenQuery.RefreshToken,
             ExpiresAt = tokenQuery.ExpiresAt
@@ -56,7 +57,22 @@ public class OAuthController(
             sessionId,
             DateTimeOffset.UtcNow.AddDays(_cookieSessionExpiryInDay));
 
-        _logger.LogInformation("User with Id {UserId} logged in.", userId);
+        _logger.LogInformation("User with Id {OsuId} logged in.", osuId);
+        return Ok();
+    }
+
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout()
+    {
+        var sessionId = Request.Cookies[ClientConst.SessionIdCookieName];
+
+        if (string.IsNullOrEmpty(sessionId))
+        {
+            return BadRequest();
+        }
+
+        await _sessionService.DeleteSessionAsync(sessionId);
+        Response.Cookies.Delete(ClientConst.SessionIdCookieName);
         return Ok();
     }
 

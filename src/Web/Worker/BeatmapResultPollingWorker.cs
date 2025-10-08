@@ -7,14 +7,16 @@ namespace OsuTaikoDaniDojo.Web.Worker;
 public class BeatmapResultPollingWorker(
     IOsuMultiplayerRoomService osuMultiplayerRoomService,
     IExamSessionRepository examSessionRepository,
-    int userId,
+    IGradeCertificateRepository gradeCertificateRepository,
+    IUserRepository userRepository,
     string accessToken,
     ExamSessionContext examSessionContext)
     : WorkerBase
 {
     private readonly IOsuMultiplayerRoomService _osuMultiplayerRoomService = osuMultiplayerRoomService;
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
-    private readonly int _userId = userId;
+    private readonly IGradeCertificateRepository _gradeCertificateRepository = gradeCertificateRepository;
+    private readonly IUserRepository _userRepository = userRepository;
     private readonly string _accessToken = accessToken;
     private readonly ExamSessionContext _examSessionContext = examSessionContext;
 
@@ -39,6 +41,20 @@ public class BeatmapResultPollingWorker(
         {
             await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
             _examSessionContext.Status = ExamSessionStatus.Passed;
+
+            var gradeCertificateId = await _gradeCertificateRepository.CreateAsync(
+                _examSessionContext.UserId,
+                _examSessionContext.Grade,
+                _examSessionContext.ExamTracker.PassLevel,
+                _examSessionContext.ExamTracker.GreatCounts,
+                _examSessionContext.ExamTracker.OkCounts,
+                _examSessionContext.ExamTracker.MissCounts,
+                _examSessionContext.ExamTracker.LargeBonusCounts,
+                _examSessionContext.ExamTracker.MaxCombos,
+                _examSessionContext.ExamTracker.HitCounts,
+                _examSessionContext.ExamSessionId);
+
+            await _userRepository.UpdateHighestGradeCertificateAsync(_examSessionContext.UserId, gradeCertificateId);
         }
         else
         {
@@ -48,7 +64,8 @@ public class BeatmapResultPollingWorker(
             new PlaylistStatusPollingWorker(
                     _osuMultiplayerRoomService,
                     _examSessionRepository,
-                    _userId,
+                    _gradeCertificateRepository,
+                    _userRepository,
                     _accessToken,
                     _examSessionContext)
                 .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);

@@ -58,7 +58,8 @@ public class SessionAuthenticationHandler(
             session = new SessionContext
             {
                 UserId = session.UserId,
-                Role = await _userRepository.GetUserRoleAsync(session.UserId) ?? session.Role,
+                OsuId = session.OsuId,
+                Role = (await _userRepository.GetUserRoleAsync(session.OsuId))?.Role ?? session.Role,
                 AccessToken = newTokenQuery.AccessToken,
                 RefreshToken = newTokenQuery.RefreshToken,
                 ExpiresAt = newTokenQuery.ExpiresAt
@@ -76,6 +77,7 @@ public class SessionAuthenticationHandler(
         {
             new Claim(ClaimTypes.NameIdentifier, session.UserId.ToString()),
             new Claim(ClaimTypes.Role, session.Role),
+            new Claim(CustomClaimTypes.OsuId, session.OsuId.ToString()),
             new Claim(CustomClaimTypes.AccessToken, session.AccessToken)
         };
 

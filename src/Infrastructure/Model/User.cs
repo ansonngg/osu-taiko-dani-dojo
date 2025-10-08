@@ -13,10 +13,7 @@ public class User : BaseModel
     public int OsuId { get; init; }
 
     [Column("highest_grade_certificate_id")]
-    public int HighestGradeCertificateId { get; init; }
-
-    [Column("is_grade_valid")]
-    public bool IsGradeValid { get; init; }
+    public int? HighestGradeCertificateId { get; init; }
 
     [Column("role")]
     public string Role { get; init; } = "user";

@@ -2,19 +2,27 @@
 
 namespace OsuTaikoDaniDojo.Domain.Entity;
 
-public class ExamBeatmap(int beatmapId, int playlistId, int length)
+public class ExamBeatmap
 {
     private readonly ExamCriteria[] _criteriaList = new ExamCriteria[(int)PassType.Count];
 
-    public int Id => beatmapId;
-    public int PlaylistId => playlistId;
-    public int Length => length;
+    public int Id { get; }
+    public int PlaylistId { get; }
+    public int Length { get; }
     public int GreatCount { get; private set; }
     public int OkCount { get; private set; }
     public int MissCount { get; private set; }
     public int LargeBonusCount { get; private set; }
     public int MaxCombo { get; private set; }
     public int HitCount { get; private set; }
+
+    public ExamBeatmap(int beatmapId, int playlistId, int length)
+    {
+        Id = beatmapId;
+        PlaylistId = playlistId;
+        Length = length;
+        _criteriaList.Initialize();
+    }
 
     public void AddCriteria(CriteriaType type, int[] thresholds)
     {

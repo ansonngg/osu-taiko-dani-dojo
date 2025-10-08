@@ -21,7 +21,7 @@ public class ExamBeatmap
         Id = beatmapId;
         PlaylistId = playlistId;
         Length = length;
-        _criteriaList.Initialize();
+        _criteriaList.Reset();
     }
 
     public void AddCriteria(CriteriaType type, int[] thresholds)

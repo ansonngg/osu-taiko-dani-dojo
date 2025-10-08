@@ -4,7 +4,7 @@ namespace OsuTaikoDaniDojo.Domain.Utility;
 
 public static class ExamCriteriaHelper
 {
-    public static void Initialize(this ExamCriteria[] criteriaList)
+    public static void Reset(this ExamCriteria[] criteriaList)
     {
         if (criteriaList.Length != (int)PassType.Count)
         {

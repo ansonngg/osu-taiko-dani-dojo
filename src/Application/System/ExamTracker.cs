@@ -20,7 +20,7 @@ public class ExamTracker
             _examBeatmaps[i] = new ExamBeatmap(examQuery.BeatmapIds[i], playlistIds[i], totalLengths[i]);
         }
 
-        _generalCriteriaList.Initialize();
+        _generalCriteriaList.Reset();
 
         var pendingSpecificCriteria = new[]
         {
@@ -78,7 +78,7 @@ public class ExamTracker
     public int[] LargeBonusCounts => _examBeatmaps.Select(x => x.LargeBonusCount).ToArray();
     public int[] MaxCombos => _examBeatmaps.Select(x => x.MaxCombo).ToArray();
     public int[] HitCounts => _examBeatmaps.Select(x => x.HitCount).ToArray();
-    public int PassLevel => (int)_passType;
+    public int PassLevel => (int)_passType + 1;
 
     public bool Judge(BeatmapResultQuery beatmapResultQuery)
     {

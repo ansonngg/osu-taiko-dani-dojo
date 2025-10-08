@@ -1,12 +1,14 @@
-﻿namespace OsuTaikoDaniDojo.Domain.Entity;
+﻿using OsuTaikoDaniDojo.Domain.Utility;
+
+namespace OsuTaikoDaniDojo.Domain.Entity;
 
 public class ExamCriteria
 {
-    public void Add(CriteriaType type, int[] thresholds)
+    public void Add(CriteriaType type, int threshold)
     {
     }
 
-    public ExamResult Check(int greatCount, int okCount, int missCount, int largeBonusCount, int maxCombo, int hitCount)
+    public bool Check(int greatCount, int okCount, int missCount, int largeBonusCount, int maxCombo, int hitCount)
     {
         throw new NotImplementedException();
     }

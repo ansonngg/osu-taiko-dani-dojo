@@ -1,4 +1,4 @@
-﻿namespace OsuTaikoDaniDojo.Domain.Entity;
+﻿namespace OsuTaikoDaniDojo.Domain.Utility;
 
 public enum CriteriaType
 {

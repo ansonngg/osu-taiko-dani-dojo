@@ -9,6 +9,5 @@ public enum ExamSessionStatus
     NoResponse,
     Terminated,
     Passed,
-    GoldPassed,
     Failed
 }

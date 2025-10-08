@@ -2,11 +2,11 @@
 
 public class ExamCriteria
 {
-    public void Add(CriteriaType type, int threshold)
+    public void Add(CriteriaType type, int[] thresholds)
     {
     }
 
-    public bool Check(int greatCount, int okCount, int missCount, int largeBonusCount, int maxCombo, int hitCount)
+    public ExamResult Check(int greatCount, int okCount, int missCount, int largeBonusCount, int maxCombo, int hitCount)
     {
         throw new NotImplementedException();
     }

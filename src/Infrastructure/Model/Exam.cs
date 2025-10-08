@@ -34,20 +34,20 @@ public class Exam : BaseModel
     public int[]? SpecificHitCounts { get; init; }
 
     [Column("general_great_count")]
-    public int? GeneralGreatCount { get; init; }
+    public int[]? GeneralGreatCounts { get; init; }
 
     [Column("general_ok_count")]
-    public int? GeneralOkCount { get; init; }
+    public int[]? GeneralOkCounts { get; init; }
 
     [Column("general_miss_count")]
-    public int? GeneralMissCount { get; init; }
+    public int[]? GeneralMissCounts { get; init; }
 
     [Column("general_large_bonus_count")]
-    public int? GeneralLargeBonusCount { get; init; }
+    public int[]? GeneralLargeBonusCounts { get; init; }
 
     [Column("general_max_combo")]
-    public int? GeneralMaxCombo { get; init; }
+    public int[]? GeneralMaxCombos { get; init; }
 
     [Column("general_hit_count")]
-    public int? GeneralHitCount { get; init; }
+    public int[]? GeneralHitCounts { get; init; }
 }

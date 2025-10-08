@@ -197,9 +197,12 @@ public class ExamSessionController(
         var payload = JsonSerializer.Serialize(
             new
             {
-                examSessionContext.ExamTracker.CurrentStage,
-                status = examSessionContext.Status.ToString(),
-                max_waiting_time = maxWaitingTime
+                stage = examSessionContext.ExamTracker.CurrentStage,
+                status = examSessionContext.Status.ToSnakeCase(),
+                max_waiting_time = maxWaitingTime,
+                pass_level = examSessionContext.Status == ExamSessionStatus.Passed
+                    ? (int?)examSessionContext.ExamTracker.PassLevel
+                    : null
             });
 
         await Response.WriteAsync($"id: {examSessionId}\n");

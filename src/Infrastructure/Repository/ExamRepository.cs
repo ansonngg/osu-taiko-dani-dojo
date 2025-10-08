@@ -35,12 +35,12 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
             SpecificLargeBonusCounts = response.SpecificLargeBonusCounts,
             SpecificMaxCombos = response.SpecificMaxCombos,
             SpecificHitCounts = response.SpecificHitCounts,
-            GeneralGreatCount = response.GeneralGreatCount ?? 0,
-            GeneralOkCount = response.GeneralOkCount ?? 0,
-            GeneralMissCount = response.GeneralMissCount ?? 0,
-            GeneralLargeBonusCount = response.GeneralLargeBonusCount ?? 0,
-            GeneralMaxCombo = response.GeneralMaxCombo ?? 0,
-            GeneralHitCount = response.GeneralHitCount ?? 0
+            GeneralGreatCounts = response.GeneralGreatCounts,
+            GeneralOkCounts = response.GeneralOkCounts,
+            GeneralMissCounts = response.GeneralMissCounts,
+            GeneralLargeBonusCounts = response.GeneralLargeBonusCounts,
+            GeneralMaxCombos = response.GeneralMaxCombos,
+            GeneralHitCounts = response.GeneralHitCounts
         };
 
         _memoryCache.SetTyped(grade, examQuery);

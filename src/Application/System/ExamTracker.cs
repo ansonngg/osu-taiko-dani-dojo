@@ -5,7 +5,7 @@ namespace OsuTaikoDaniDojo.Application.System;
 
 public class ExamTracker
 {
-    private readonly ExamCriteria[] _specificCriteriaArray;
+    private readonly ExamCriteria[] _specificCriteriaForBeatmap;
     private readonly ExamCriteria _generalCriteria = new();
     private readonly int[] _playlistIds;
     private readonly int[] _beatmapIds;
@@ -20,11 +20,11 @@ public class ExamTracker
 
     public ExamTracker(ExamQuery examQuery, int[] playlistIds, int[] totalLengths)
     {
-        _specificCriteriaArray = new ExamCriteria[examQuery.BeatmapIds.Length];
+        _specificCriteriaForBeatmap = new ExamCriteria[examQuery.BeatmapIds.Length];
 
-        for (var i = 0; i < _specificCriteriaArray.Length; i++)
+        for (var i = 0; i < _specificCriteriaForBeatmap.Length; i++)
         {
-            _specificCriteriaArray[i] = new ExamCriteria();
+            _specificCriteriaForBeatmap[i] = new ExamCriteria();
         }
 
         _playlistIds = playlistIds;
@@ -41,23 +41,26 @@ public class ExamTracker
             examQuery.SpecificHitCounts
         };
 
-        var generalCriteriaThresholds = new[]
+        var pendingGeneralCriteria = new[]
         {
-            examQuery.GeneralGreatCount,
-            examQuery.GeneralOkCount,
-            examQuery.GeneralMissCount,
-            examQuery.GeneralLargeBonusCount,
-            examQuery.GeneralMaxCombo,
-            examQuery.GeneralHitCount
+            examQuery.GeneralGreatCounts,
+            examQuery.GeneralOkCounts,
+            examQuery.GeneralMissCounts,
+            examQuery.GeneralLargeBonusCounts,
+            examQuery.GeneralMaxCombos,
+            examQuery.GeneralHitCounts
         };
+
+        const int passTypeCount = (int)ExamResult.Count - 1;
 
         for (var i = 0; i < pendingSpecificCriteria.Length; i++)
         {
-            if (pendingSpecificCriteria[i] == null || pendingSpecificCriteria[i]!.Length != _beatmapIds.Length)
+            if (pendingSpecificCriteria[i] == null
+                || pendingSpecificCriteria[i]!.Length != passTypeCount * _beatmapIds.Length)
             {
-                if (generalCriteriaThresholds[i] > 0)
+                if (pendingGeneralCriteria[i] is { Length: passTypeCount })
                 {
-                    _generalCriteria.Add((CriteriaType)i, generalCriteriaThresholds[i]);
+                    _generalCriteria.Add((CriteriaType)i, pendingGeneralCriteria[i]!);
                 }
 
                 continue;
@@ -65,7 +68,9 @@ public class ExamTracker
 
             for (var j = 0; j < _beatmapIds.Length; j++)
             {
-                _specificCriteriaArray[j].Add((CriteriaType)i, pendingSpecificCriteria[i]![j]);
+                _specificCriteriaForBeatmap[j].Add(
+                    (CriteriaType)i,
+                    pendingSpecificCriteria[i]![(j * passTypeCount)..((j + 1) * passTypeCount)]);
             }
         }
     }
@@ -75,6 +80,7 @@ public class ExamTracker
     public int CurrentBeatmapId => _currentStage < _beatmapIds.Length ? _beatmapIds[_currentStage] : 0;
     public int CurrentBeatmapLength => _currentStage < _totalLengths.Length ? _totalLengths[_currentStage] : 0;
     public bool IsEnded => _currentStage >= _beatmapIds.Length;
+    public int PassLevel { get; private set; } = (int)ExamResult.Count;
 
     public bool Judge(BeatmapResultQuery beatmapResultQuery)
     {
@@ -83,17 +89,20 @@ public class ExamTracker
             throw new InvalidOperationException("Exam has ended.");
         }
 
-        if (!_specificCriteriaArray[_currentStage].Check(
-                beatmapResultQuery.GreatCount,
-                beatmapResultQuery.OkCount,
-                beatmapResultQuery.MissCount,
-                beatmapResultQuery.LargeBonusCount,
-                beatmapResultQuery.MaxCombo,
-                beatmapResultQuery.HitCount))
+        var result = _specificCriteriaForBeatmap[_currentStage].Check(
+            beatmapResultQuery.GreatCount,
+            beatmapResultQuery.OkCount,
+            beatmapResultQuery.MissCount,
+            beatmapResultQuery.LargeBonusCount,
+            beatmapResultQuery.MaxCombo,
+            beatmapResultQuery.HitCount);
+
+        if (result == ExamResult.Failed)
         {
             return false;
         }
 
+        PassLevel = Math.Min(PassLevel, (int)result);
         _currentStage++;
         _totalGreatCount += beatmapResultQuery.GreatCount;
         _totalOkCount += beatmapResultQuery.OkCount;
@@ -102,13 +111,25 @@ public class ExamTracker
         _totalMaxCombo += beatmapResultQuery.MaxCombo;
         _totalHitCount += beatmapResultQuery.HitCount;
 
-        return !IsEnded
-               || _generalCriteria.Check(
-                   _totalGreatCount,
-                   _totalOkCount,
-                   _totalMissCount,
-                   _totalLargeBonusCount,
-                   _totalMaxCombo,
-                   _totalHitCount);
+        if (!IsEnded)
+        {
+            return true;
+        }
+
+        result = _generalCriteria.Check(
+            _totalGreatCount,
+            _totalOkCount,
+            _totalMissCount,
+            _totalLargeBonusCount,
+            _totalMaxCombo,
+            _totalHitCount);
+
+        if (result == ExamResult.Failed)
+        {
+            return false;
+        }
+
+        PassLevel = Math.Min(PassLevel, (int)result);
+        return true;
     }
 }

@@ -6,35 +6,24 @@ namespace OsuTaikoDaniDojo.Web.Worker;
 
 public class BeatmapResultPollingWorker(
     IOsuMultiplayerRoomService osuMultiplayerRoomService,
-    ISessionService sessionService,
     IExamSessionRepository examSessionRepository,
-    string sessionId,
+    int userId,
+    string accessToken,
     ExamSessionContext examSessionContext)
     : WorkerBase
 {
     private readonly IOsuMultiplayerRoomService _osuMultiplayerRoomService = osuMultiplayerRoomService;
-    private readonly ISessionService _sessionService = sessionService;
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
-    private readonly string _sessionId = sessionId;
+    private readonly int _userId = userId;
+    private readonly string _accessToken = accessToken;
     private readonly ExamSessionContext _examSessionContext = examSessionContext;
 
     protected override async Task Execute()
     {
-        var accessToken = (await _sessionService.GetSessionAsync<SessionContext>(_sessionId))?.AccessToken;
-
-        if (string.IsNullOrEmpty(accessToken))
-        {
-            await _examSessionRepository.TerminateAsync(_examSessionContext.ExamSessionId);
-            _examSessionContext.Status = ExamSessionStatus.Terminated;
-            Cancel();
-            return;
-        }
-
-        _osuMultiplayerRoomService.SetAuthenticationHeader(accessToken);
-
         var beatmapResultQuery = await _osuMultiplayerRoomService.GetBeatmapResultAsync(
             _examSessionContext.RoomId,
-            _examSessionContext.ExamTracker.CurrentPlaylistId);
+            _examSessionContext.ExamTracker.CurrentPlaylistId,
+            _accessToken);
 
         if (beatmapResultQuery == null)
         {
@@ -58,9 +47,9 @@ public class BeatmapResultPollingWorker(
 
             new PlaylistStatusPollingWorker(
                     _osuMultiplayerRoomService,
-                    _sessionService,
                     _examSessionRepository,
-                    _sessionId,
+                    _userId,
+                    _accessToken,
                     _examSessionContext)
                 .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
         }

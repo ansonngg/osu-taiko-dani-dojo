@@ -14,12 +14,14 @@ namespace OsuTaikoDaniDojo.Web.Controller;
 public class OAuthController(
     IOsuAuthService osuAuthService,
     ISessionService sessionService,
+    IUserRepository userRepository,
     IOptions<SessionOptions> options,
     ILogger<OAuthController> logger)
     : ControllerBase
 {
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
     private readonly ISessionService _sessionService = sessionService;
+    private readonly IUserRepository _userRepository = userRepository;
     private readonly int _cookieSessionExpiryInDay = options.Value.CookieExpiryInDay;
     private readonly ILogger<OAuthController> _logger = logger;
 
@@ -35,10 +37,12 @@ public class OAuthController(
     {
         var tokenQuery = await _osuAuthService.ExchangeTokenAsync(request.Code);
         var userId = await _osuAuthService.GetUserIdAsync(tokenQuery.AccessToken);
+        var role = await _userRepository.GetUserRoleAsync(userId) ?? await _userRepository.CreateAsync(userId);
 
         var sessionData = new SessionContext
         {
             UserId = userId,
+            Role = role,
             AccessToken = tokenQuery.AccessToken,
             RefreshToken = tokenQuery.RefreshToken,
             ExpiresAt = tokenQuery.ExpiresAt

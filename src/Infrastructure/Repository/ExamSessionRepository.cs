@@ -1,5 +1,4 @@
 ﻿using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Query;
 using OsuTaikoDaniDojo.Infrastructure.Model;
 using Supabase.Postgrest;
 using Client = Supabase.Client;

@@ -1,8 +1,9 @@
-﻿using OsuTaikoDaniDojo.Application.Interface;
+﻿using Microsoft.AspNetCore.Authentication;
+using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Infrastructure.Repository;
 using OsuTaikoDaniDojo.Infrastructure.Service;
-using OsuTaikoDaniDojo.Web.Middleware;
+using OsuTaikoDaniDojo.Web.Handler;
 using Supabase;
 using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
@@ -34,16 +35,30 @@ public static class DependencyInjection
 
     public static void AddServices(this IServiceCollection services)
     {
+        services.AddHttpClient<IOsuAuthService, OsuAuthService>(
+            client => { client.BaseAddress = new Uri("https://osu.ppy.sh"); });
+
+        services.AddHttpClient<IOsuMultiplayerRoomService, OsuMultiplayerRoomService>(
+                client => { client.BaseAddress = new Uri("https://osu.ppy.sh/api/v2/rooms/"); })
+            .AddHttpMessageHandler<OsuAuthHeaderHandler>();
+
         services.AddHttpClient<RedisSessionService>();
-        services.AddHttpClient<IOsuAuthService, OsuAuthService>();
-        services.AddHttpClient<IOsuMultiplayerRoomService, OsuMultiplayerRoomService>();
         services.AddSingleton<ISessionService, HybridSessionService>();
+    }
+
+    public static void AddHandlers(this IServiceCollection services)
+    {
+        services.AddAuthentication("Session")
+            .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>("Session", null);
+
+        services.AddTransient<OsuAuthHeaderHandler>();
     }
 
     public static void AddRepositories(this IServiceCollection services)
     {
         services.AddSingleton<IExamRepository, ExamRepository>();
         services.AddSingleton<IExamSessionRepository, ExamSessionRepository>();
+        services.AddSingleton<IUserRepository, UserRepository>();
     }
 
     public static void AddUtilities(this IServiceCollection services)
@@ -52,10 +67,6 @@ public static class DependencyInjection
         services.AddOptions<OsuOptions>().BindConfiguration("Osu");
         services.AddOptions<RedisOptions>().BindConfiguration("Redis");
         services.AddMemoryCache();
-    }
-
-    public static void UseMiddleware(this WebApplication app)
-    {
-        app.UseMiddleware<SessionMiddleware>();
+        services.AddHttpContextAccessor();
     }
 }

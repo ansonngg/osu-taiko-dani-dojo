@@ -10,19 +10,12 @@ using OsuTaikoDaniDojo.Infrastructure.Response;
 
 namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
-public class OsuAuthService : IOsuAuthService
+public class OsuAuthService(HttpClient httpClient, IOptions<OsuOptions> osuOptions, ILogger<OsuAuthService> logger)
+    : IOsuAuthService
 {
-    private readonly HttpClient _httpClient;
-    private readonly OsuOptions _osuOptions;
-    private readonly ILogger<OsuAuthService> _logger;
-
-    public OsuAuthService(HttpClient httpClient, IOptions<OsuOptions> osuOptions, ILogger<OsuAuthService> logger)
-    {
-        _httpClient = httpClient;
-        _osuOptions = osuOptions.Value;
-        _logger = logger;
-        _httpClient.BaseAddress = new Uri("https://osu.ppy.sh");
-    }
+    private readonly HttpClient _httpClient = httpClient;
+    private readonly OsuOptions _osuOptions = osuOptions.Value;
+    private readonly ILogger<OsuAuthService> _logger = logger;
 
     public string GetAuthorizeUrl()
     {

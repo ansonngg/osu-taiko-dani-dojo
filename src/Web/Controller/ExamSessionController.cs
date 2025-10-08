@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using OsuTaikoDaniDojo.Application.Interface;
@@ -15,7 +16,6 @@ namespace OsuTaikoDaniDojo.Web.Controller;
 [Route("api/[controller]")]
 public class ExamSessionController(
     IOsuMultiplayerRoomService osuMultiplayerRoomService,
-    ISessionService sessionService,
     IExamRepository examRepository,
     IExamSessionRepository examSessionRepository,
     IMemoryCache memoryCache,
@@ -25,7 +25,6 @@ public class ExamSessionController(
     private static readonly TimeSpan ExamSessionExpiry = TimeSpan.FromMinutes(60);
     private static readonly TimeSpan ExamSessionStatusCheckInterval = TimeSpan.FromSeconds(1);
     private readonly IOsuMultiplayerRoomService _osuMultiplayerRoomService = osuMultiplayerRoomService;
-    private readonly ISessionService _sessionService = sessionService;
     private readonly IExamRepository _examRepository = examRepository;
     private readonly IExamSessionRepository _examSessionRepository = examSessionRepository;
     private readonly IMemoryCache _memoryCache = memoryCache;
@@ -41,22 +40,15 @@ public class ExamSessionController(
             return NotFound();
         }
 
-        var sessionId = Request.Cookies[ClientConst.SessionIdCookieName];
+        var accessToken = User.FindFirstValue(CustomClaimTypes.AccessToken);
 
-        if (string.IsNullOrEmpty(sessionId))
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)
+            || string.IsNullOrEmpty(accessToken))
         {
             return Unauthorized();
         }
 
-        var sessionContext = await _sessionService.GetSessionAsync<SessionContext>(sessionId);
-
-        if (sessionContext == null)
-        {
-            return Unauthorized();
-        }
-
-        _osuMultiplayerRoomService.SetAuthenticationHeader(sessionContext.AccessToken);
-        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(sessionContext.UserId);
+        var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(userId);
 
         if (multiplayerRoomQuery is not { IsActive: true } || multiplayerRoomQuery.Status != "idle")
         {
@@ -90,12 +82,12 @@ public class ExamSessionController(
             return BadRequest(new ExamSessionResponse { IsRoomActive = true, IsPlaylistCorrect = isPlaylistCorrect });
         }
 
-        var examSessionId = await _examSessionRepository.CreateAsync(sessionContext.UserId, grade);
+        var examSessionId = await _examSessionRepository.CreateAsync(userId, grade);
 
         var examSessionContext = new ExamSessionContext
         {
             ExamSessionId = examSessionId,
-            UserId = sessionContext.UserId,
+            UserId = userId,
             RoomId = multiplayerRoomQuery.RoomId,
             ExamTracker = new ExamTracker(
                 examQuery,
@@ -107,9 +99,9 @@ public class ExamSessionController(
 
         new PlaylistStatusPollingWorker(
                 _osuMultiplayerRoomService,
-                _sessionService,
                 _examSessionRepository,
-                sessionId,
+                userId,
+                accessToken,
                 examSessionContext)
             .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
 
@@ -136,17 +128,9 @@ public class ExamSessionController(
             throw new NullReferenceException("Exam session context is null.");
         }
 
-        var sessionId = Request.Cookies[ClientConst.SessionIdCookieName];
+        var accessToken = User.FindFirstValue(CustomClaimTypes.AccessToken);
 
-        if (string.IsNullOrEmpty(sessionId))
-        {
-            Response.StatusCode = 401;
-            return;
-        }
-
-        var sessionContext = await _sessionService.GetSessionAsync<SessionContext>(sessionId);
-
-        if (sessionContext == null || sessionContext.UserId != examSessionContext.UserId)
+        if (string.IsNullOrEmpty(accessToken))
         {
             Response.StatusCode = 401;
             return;

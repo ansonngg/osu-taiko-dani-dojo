@@ -7,23 +7,14 @@ using OsuTaikoDaniDojo.Infrastructure.Response;
 
 namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
-public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
+public class OsuMultiplayerRoomService(HttpClient httpClient) : IOsuMultiplayerRoomService
 {
-    private readonly HttpClient _httpClient;
+    private readonly HttpClient _httpClient = httpClient;
 
-    public OsuMultiplayerRoomService(HttpClient httpClient)
+    public async Task<MultiplayerRoomQuery?> GetMostRecentActiveRoomAsync(int userId, string? accessToken = null)
     {
-        _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("https://osu.ppy.sh/api/v2/rooms/");
-    }
+        _SetAuthenticationHeader(accessToken);
 
-    public void SetAuthenticationHeader(string accessToken)
-    {
-        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-    }
-
-    public async Task<MultiplayerRoomQuery?> GetMostRecentActiveRoomAsync(int userId)
-    {
         var queryParams = new Dictionary<string, string?>
         {
             ["limit"] = "1",
@@ -90,8 +81,9 @@ public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
         };
     }
 
-    public async Task<BeatmapResultQuery?> GetBeatmapResultAsync(int roomId, int playlistId)
+    public async Task<BeatmapResultQuery?> GetBeatmapResultAsync(int roomId, int playlistId, string? accessToken = null)
     {
+        _SetAuthenticationHeader(accessToken);
         var requestUri = $"{roomId}/playlist/{playlistId}/scores";
         var queryParams = new Dictionary<string, string?> { ["limit"] = "1" };
         var response = await _httpClient.GetAsync(QueryHelpers.AddQueryString(requestUri, queryParams));
@@ -119,5 +111,13 @@ public class OsuMultiplayerRoomService : IOsuMultiplayerRoomService
             MaxCombo = playlistResultResponse.UserScore.MaxCombo,
             HitCount = statistics.Great + statistics.Ok + statistics.SmallBonus
         };
+    }
+
+    private void _SetAuthenticationHeader(string? accessToken)
+    {
+        if (accessToken != null)
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        }
     }
 }

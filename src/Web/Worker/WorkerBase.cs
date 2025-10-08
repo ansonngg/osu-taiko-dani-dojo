@@ -2,7 +2,7 @@
 
 public abstract class WorkerBase
 {
-    private bool _isCanceling { get; set; }
+    private bool _isCanceling;
 
     public void Run(TimeSpan interval, TimeSpan duration, TimeSpan delay = default)
     {

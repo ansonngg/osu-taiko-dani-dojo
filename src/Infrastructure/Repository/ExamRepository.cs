@@ -3,7 +3,8 @@ using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Query;
 using OsuTaikoDaniDojo.Application.Utility;
 using OsuTaikoDaniDojo.Infrastructure.Model;
-using Supabase;
+using Supabase.Postgrest;
+using Client = Supabase.Client;
 
 namespace OsuTaikoDaniDojo.Infrastructure.Repository;
 
@@ -11,6 +12,23 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
 {
     private readonly Client _database = database;
     private readonly IMemoryCache _memoryCache = memoryCache;
+
+    public async Task<ExamQuery[]> GetAllAsync()
+    {
+        var response = await _database.From<Exam>().Order(x => x.Grade, Constants.Ordering.Ascending).Get();
+
+        return response != null
+            ? response.Models
+                .Select(
+                    x =>
+                    {
+                        var examQuery = _ConstructExamQuery(x);
+                        _memoryCache.SetTyped(x.Grade, examQuery);
+                        return examQuery;
+                    })
+                .ToArray()
+            : throw new NullReferenceException("Exam response is null.");
+    }
 
     public async Task<ExamQuery?> GetByGradeAsync(int grade)
     {
@@ -26,23 +44,7 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
             return null;
         }
 
-        examQuery = new ExamQuery
-        {
-            BeatmapIds = response.BeatmapIds,
-            SpecificGreatCounts = response.SpecificGreatCounts,
-            SpecificOkCounts = response.SpecificOkCounts,
-            SpecificMissCounts = response.SpecificMissCounts,
-            SpecificLargeBonusCounts = response.SpecificLargeBonusCounts,
-            SpecificMaxCombos = response.SpecificMaxCombos,
-            SpecificHitCounts = response.SpecificHitCounts,
-            GeneralGreatCounts = response.GeneralGreatCounts,
-            GeneralOkCounts = response.GeneralOkCounts,
-            GeneralMissCounts = response.GeneralMissCounts,
-            GeneralLargeBonusCounts = response.GeneralLargeBonusCounts,
-            GeneralMaxCombos = response.GeneralMaxCombos,
-            GeneralHitCounts = response.GeneralHitCounts
-        };
-
+        examQuery = _ConstructExamQuery(response);
         _memoryCache.SetTyped(grade, examQuery);
         return examQuery;
     }
@@ -69,5 +71,28 @@ public class ExamRepository(Client database, IMemoryCache memoryCache) : IExamRe
                     GeneralMaxCombos = examQuery.GeneralMaxCombos,
                     GeneralHitCounts = examQuery.GeneralHitCounts
                 });
+
+        _memoryCache.RemoveTyped<ExamQuery>(grade);
+    }
+
+    private static ExamQuery _ConstructExamQuery(Exam exam)
+    {
+        return new ExamQuery
+        {
+            Grade = exam.Grade,
+            BeatmapIds = exam.BeatmapIds,
+            SpecificGreatCounts = exam.SpecificGreatCounts,
+            SpecificOkCounts = exam.SpecificOkCounts,
+            SpecificMissCounts = exam.SpecificMissCounts,
+            SpecificLargeBonusCounts = exam.SpecificLargeBonusCounts,
+            SpecificMaxCombos = exam.SpecificMaxCombos,
+            SpecificHitCounts = exam.SpecificHitCounts,
+            GeneralGreatCounts = exam.GeneralGreatCounts,
+            GeneralOkCounts = exam.GeneralOkCounts,
+            GeneralMissCounts = exam.GeneralMissCounts,
+            GeneralLargeBonusCounts = exam.GeneralLargeBonusCounts,
+            GeneralMaxCombos = exam.GeneralMaxCombos,
+            GeneralHitCounts = exam.GeneralHitCounts
+        };
     }
 }

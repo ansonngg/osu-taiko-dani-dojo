@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Query;
 using OsuTaikoDaniDojo.Web.Request;
+using OsuTaikoDaniDojo.Web.Response;
 
 namespace OsuTaikoDaniDojo.Web.Controller;
 
@@ -12,11 +13,24 @@ public class ExamController(IExamRepository examRepository) : ControllerBase
 {
     private readonly IExamRepository _examRepository = examRepository;
 
+    [HttpGet]
+    public async Task<IActionResult> GetAllExams()
+    {
+        var examQueries = await _examRepository.GetAllAsync();
+        return Ok(examQueries.Select(_ConstructExamResponse).ToArray());
+    }
+
     [HttpGet("{grade:int}")]
     public async Task<IActionResult> GetExamByGrade(int grade)
     {
         var examQuery = await _examRepository.GetByGradeAsync(grade);
-        return Ok(new { examQuery?.BeatmapIds });
+
+        if (examQuery == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(_ConstructExamResponse(examQuery));
     }
 
     [Authorize(Roles = "Admin,Examiner")]
@@ -43,5 +57,26 @@ public class ExamController(IExamRepository examRepository) : ControllerBase
             });
 
         return Ok();
+    }
+
+    private static ExamResponse _ConstructExamResponse(ExamQuery examQuery)
+    {
+        return new ExamResponse
+        {
+            Grade = examQuery.Grade,
+            BeatmapIds = examQuery.BeatmapIds,
+            SpecificGreatCounts = examQuery.SpecificGreatCounts,
+            SpecificOkCounts = examQuery.SpecificOkCounts,
+            SpecificMissCounts = examQuery.SpecificMissCounts,
+            SpecificLargeBonusCounts = examQuery.SpecificLargeBonusCounts,
+            SpecificMaxCombos = examQuery.SpecificMaxCombos,
+            SpecificHitCounts = examQuery.SpecificHitCounts,
+            GeneralGreatCounts = examQuery.GeneralGreatCounts,
+            GeneralOkCounts = examQuery.GeneralOkCounts,
+            GeneralMissCounts = examQuery.GeneralMissCounts,
+            GeneralLargeBonusCounts = examQuery.GeneralLargeBonusCounts,
+            GeneralMaxCombos = examQuery.GeneralMaxCombos,
+            GeneralHitCounts = examQuery.GeneralHitCounts
+        };
     }
 }

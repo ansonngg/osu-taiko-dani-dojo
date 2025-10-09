@@ -2,6 +2,7 @@
 
 public class ExamQuery
 {
+    public int Grade { get; init; }
     public int[] BeatmapIds { get; init; } = [];
     public int[]? SpecificGreatCounts { get; init; }
     public int[]? SpecificOkCounts { get; init; }

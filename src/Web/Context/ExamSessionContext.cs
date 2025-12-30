@@ -5,8 +5,6 @@ namespace OsuTaikoDaniDojo.Web.Context;
 
 public class ExamSessionContext
 {
-    private ExamSessionStatus _status = ExamSessionStatus.Waiting;
-
     public int ExamSessionId { get; init; }
     public int UserId { get; init; }
     public int OsuId { get; init; }
@@ -16,13 +14,13 @@ public class ExamSessionContext
 
     public ExamSessionStatus Status
     {
-        get => _status;
+        get;
         set
         {
-            _status = value;
+            field = value;
             LastUpdatedAt = DateTime.UtcNow;
         }
-    }
+    } = ExamSessionStatus.Waiting;
 
-    public DateTime LastUpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime LastUpdatedAt { get; private set; } = DateTime.UtcNow;
 }

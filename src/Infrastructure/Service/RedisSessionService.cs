@@ -20,6 +20,7 @@ public class RedisSessionService : ISessionService
     {
         _httpClient = httpClient;
         _httpClient.BaseAddress = new Uri(redisOptions.Value.Url);
+
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
             "Bearer",
             redisOptions.Value.Token);

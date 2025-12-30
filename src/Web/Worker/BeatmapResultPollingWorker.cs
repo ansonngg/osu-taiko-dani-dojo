@@ -1,6 +1,6 @@
 ﻿using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Web.Const;
 using OsuTaikoDaniDojo.Web.Context;
-using OsuTaikoDaniDojo.Web.Utility;
 
 namespace OsuTaikoDaniDojo.Web.Worker;
 

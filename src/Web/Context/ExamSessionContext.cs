@@ -1,5 +1,5 @@
-﻿using OsuTaikoDaniDojo.Application.System;
-using OsuTaikoDaniDojo.Web.Utility;
+﻿using OsuTaikoDaniDojo.Application.Exam;
+using OsuTaikoDaniDojo.Web.Const;
 
 namespace OsuTaikoDaniDojo.Web.Context;
 

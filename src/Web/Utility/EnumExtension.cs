@@ -2,7 +2,7 @@
 
 namespace OsuTaikoDaniDojo.Web.Utility;
 
-public static class EnumHelper
+public static class EnumExtension
 {
     public static string ToSnakeCase(this Enum value)
     {

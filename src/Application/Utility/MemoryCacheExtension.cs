@@ -2,7 +2,7 @@
 
 namespace OsuTaikoDaniDojo.Application.Utility;
 
-public static class MemoryCacheHelper
+public static class MemoryCacheExtension
 {
     public static void SetTyped<T>(this IMemoryCache memoryCache, object key, T value)
         => memoryCache.Set(GetTypedKey<T>(key), value);

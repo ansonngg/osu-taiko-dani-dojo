@@ -1,6 +1,6 @@
 ﻿namespace OsuTaikoDaniDojo.Web.Utility;
 
-public static class CookieHelper
+public static class ResponseCookiesExtension
 {
     public static void Append(this IResponseCookies cookies, string key, string value, DateTimeOffset expires)
     {

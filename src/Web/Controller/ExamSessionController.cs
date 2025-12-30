@@ -2,9 +2,10 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using OsuTaikoDaniDojo.Application.Exam;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.System;
 using OsuTaikoDaniDojo.Application.Utility;
+using OsuTaikoDaniDojo.Web.Const;
 using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Response;
 using OsuTaikoDaniDojo.Web.Utility;
@@ -182,7 +183,7 @@ public class ExamSessionController(
         {
             ExamSessionStatus.Waiting => ClientConst.OsuPollingDuration.Seconds,
             ExamSessionStatus.Playing => examSessionContext.ExamTracker.CurrentBeatmapLength
-                                         + ClientConst.OsuPollingDuration.Seconds,
+                + ClientConst.OsuPollingDuration.Seconds,
             _ => null
         };
 

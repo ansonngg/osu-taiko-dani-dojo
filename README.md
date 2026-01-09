@@ -3,6 +3,6 @@
 No way we still haven't had a Dan-i Dojo for osu!taiko yet, so I decided to make one.
 
 ## Backend Tech Stack
-- **.NET 9 Web API**
+- **.NET 10 Web API**
 - **Redis (Upstash)** for session management
 - **PostgreSQL (Supabase)** for persistent storage

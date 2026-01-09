@@ -3,6 +3,7 @@
 public interface IExamSessionRepository
 {
     public Task<int> CreateAsync(int osuId, int grade);
+    public Task<int?> GetInProgressIdAsync(int osuId);
     public Task ProceedToNextStageAsync(int examSessionId);
     public Task SetCompletedAsync(int examSessionId);
     public Task SetTimeOutAsync(int examSessionId);

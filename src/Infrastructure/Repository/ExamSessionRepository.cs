@@ -20,6 +20,17 @@ public class ExamSessionRepository(Client database) : IExamSessionRepository
         return response.Model?.Id ?? throw new NullReferenceException("Returned exam session is null.");
     }
 
+    public async Task<int?> GetInProgressIdAsync(int osuId)
+    {
+        var response = await _database
+            .From<ExamSession>()
+            .Select(x => new object[] { x.Id })
+            .Where(x => x.OsuId == osuId && x.Status == "in_progress")
+            .Single();
+
+        return response?.Id;
+    }
+
     public async Task ProceedToNextStageAsync(int examSessionId)
     {
         await _database.Rpc("increment_exam_session_stage", new { p_exam_session_id = examSessionId });

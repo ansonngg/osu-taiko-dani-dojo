@@ -33,7 +33,7 @@ public class ExamController(IExamRepository examRepository) : ControllerBase
         return Ok(_ConstructExamResponse(examQuery));
     }
 
-    [Authorize(Roles = "Admin,Examiner")]
+    [Authorize(Roles = "Admin,Setter")]
     [HttpPost("{grade:int}")]
     public async Task<IActionResult> CreateExam(int grade, [FromBody] CreateExamRequest request)
     {

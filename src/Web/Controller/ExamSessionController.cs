@@ -54,6 +54,13 @@ public class ExamSessionController(
             return Unauthorized();
         }
 
+        var inProgressExamSessionId = await _examSessionRepository.GetInProgressIdAsync(osuId);
+
+        if (inProgressExamSessionId != null)
+        {
+            return Conflict(new ExamSessionResponse { Id = inProgressExamSessionId.Value });
+        }
+
         var multiplayerRoomQuery = await _osuMultiplayerRoomService.GetMostRecentActiveRoomAsync(osuId);
 
         if (multiplayerRoomQuery is not { IsActive: true } || multiplayerRoomQuery.Status != "idle")

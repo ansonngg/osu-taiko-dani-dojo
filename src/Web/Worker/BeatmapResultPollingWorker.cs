@@ -22,58 +22,69 @@ public class BeatmapResultPollingWorker(
 
     protected override async Task Execute()
     {
-        var beatmapResultQuery = await _osuMultiplayerRoomService.GetBeatmapResultAsync(
-            _examSessionContext.RoomId,
-            _examSessionContext.ExamTracker.CurrentPlaylistId,
-            _accessToken);
-
-        if (beatmapResultQuery == null)
+        try
         {
-            return;
+            var beatmapResultQuery = await _osuMultiplayerRoomService.GetBeatmapResultAsync(
+                _examSessionContext.RoomId,
+                _examSessionContext.ExamTracker.CurrentPlaylistId,
+                _accessToken);
+
+            if (beatmapResultQuery == null)
+            {
+                return;
+            }
+
+            if (!_examSessionContext.ExamTracker.IsModListValid(beatmapResultQuery.HasMods ? ["Dummy"] : []))
+            {
+                await _examSessionRepository.DisqualifyAsync(_examSessionContext.ExamSessionId);
+                _examSessionContext.Status = ExamSessionStatus.Disqualified;
+            }
+            else if (!_examSessionContext.ExamTracker.Judge(beatmapResultQuery))
+            {
+                await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
+                _examSessionContext.Status = ExamSessionStatus.Failed;
+            }
+            else if (_examSessionContext.ExamTracker.IsEnded)
+            {
+                await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
+                _examSessionContext.Status = ExamSessionStatus.Passed;
+
+                var gradeCertificateId = await _gradeCertificateRepository.CreateAsync(
+                    _examSessionContext.UserId,
+                    _examSessionContext.Grade,
+                    _examSessionContext.ExamTracker.PassLevel,
+                    _examSessionContext.ExamTracker.GreatCounts,
+                    _examSessionContext.ExamTracker.OkCounts,
+                    _examSessionContext.ExamTracker.MissCounts,
+                    _examSessionContext.ExamTracker.LargeBonusCounts,
+                    _examSessionContext.ExamTracker.MaxCombos,
+                    _examSessionContext.ExamTracker.HitCounts,
+                    _examSessionContext.ExamSessionId);
+
+                await _userRepository.UpdateHighestGradeCertificateAsync(
+                    _examSessionContext.UserId,
+                    gradeCertificateId);
+            }
+            else
+            {
+                await _examSessionRepository.ProceedToNextStageAsync(_examSessionContext.ExamSessionId);
+                _examSessionContext.Status = ExamSessionStatus.Waiting;
+
+                new PlaylistStatusPollingWorker(
+                        _osuMultiplayerRoomService,
+                        _examSessionRepository,
+                        _gradeCertificateRepository,
+                        _userRepository,
+                        _accessToken,
+                        _examSessionContext)
+                    .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
+            }
         }
-
-        if (beatmapResultQuery.HasMods)
+        catch (Exception)
         {
-            await _examSessionRepository.DisqualifyAsync(_examSessionContext.ExamSessionId);
-            _examSessionContext.Status = ExamSessionStatus.Disqualified;
-        }
-        else if (!_examSessionContext.ExamTracker.Judge(beatmapResultQuery))
-        {
-            await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
-            _examSessionContext.Status = ExamSessionStatus.Failed;
-        }
-        else if (_examSessionContext.ExamTracker.IsEnded)
-        {
-            await _examSessionRepository.SetCompletedAsync(_examSessionContext.ExamSessionId);
-            _examSessionContext.Status = ExamSessionStatus.Passed;
-
-            var gradeCertificateId = await _gradeCertificateRepository.CreateAsync(
-                _examSessionContext.UserId,
-                _examSessionContext.Grade,
-                _examSessionContext.ExamTracker.PassLevel,
-                _examSessionContext.ExamTracker.GreatCounts,
-                _examSessionContext.ExamTracker.OkCounts,
-                _examSessionContext.ExamTracker.MissCounts,
-                _examSessionContext.ExamTracker.LargeBonusCounts,
-                _examSessionContext.ExamTracker.MaxCombos,
-                _examSessionContext.ExamTracker.HitCounts,
-                _examSessionContext.ExamSessionId);
-
-            await _userRepository.UpdateHighestGradeCertificateAsync(_examSessionContext.UserId, gradeCertificateId);
-        }
-        else
-        {
-            await _examSessionRepository.ProceedToNextStageAsync(_examSessionContext.ExamSessionId);
-            _examSessionContext.Status = ExamSessionStatus.Waiting;
-
-            new PlaylistStatusPollingWorker(
-                    _osuMultiplayerRoomService,
-                    _examSessionRepository,
-                    _gradeCertificateRepository,
-                    _userRepository,
-                    _accessToken,
-                    _examSessionContext)
-                .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
+            await _examSessionRepository.TerminateAsync(_examSessionContext.ExamSessionId);
+            _examSessionContext.Status = ExamSessionStatus.Terminated;
+            throw;
         }
 
         Cancel();

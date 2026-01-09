@@ -51,17 +51,17 @@ public class ExamTracker
     public int[] HitCounts => _examBeatmaps.Select(x => x.Result.HitCount).ToArray();
     public int PassLevel { get; private set; }
 
+    public bool IsModListValid(string[] mods)
+    {
+        // TODO: Might implement real mod list checking later
+        return mods.Length == 0;
+    }
+
     public bool Judge(BeatmapResultQuery beatmapResultQuery)
     {
         if (IsEnded)
         {
             throw new InvalidOperationException("Exam has already ended.");
-        }
-
-        // TODO: Might implement mods checking later
-        if (beatmapResultQuery.HasMods)
-        {
-            return false;
         }
 
         var stageResult = new StageResult

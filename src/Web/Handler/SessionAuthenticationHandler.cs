@@ -60,7 +60,7 @@ public class SessionAuthenticationHandler(
             {
                 UserId = session.UserId,
                 OsuId = session.OsuId,
-                Role = (await _userRepository.GetUserRoleAsync(session.OsuId))?.Role ?? session.Role,
+                Role = (await _userRepository.GetUserRoleAsync(session.OsuId))?.Role ?? "User",
                 AccessToken = newTokenQuery.AccessToken,
                 RefreshToken = newTokenQuery.RefreshToken,
                 ExpiresAt = newTokenQuery.ExpiresAt

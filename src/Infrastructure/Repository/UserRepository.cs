@@ -18,7 +18,13 @@ public class UserRepository(Client database) : IUserRepository
             .Where(x => x.OsuId == osuId)
             .Single();
 
-        return response != null ? new UserRoleQuery { UserId = response.Id, Role = response.Role } : null;
+        if (response == null)
+        {
+            return null;
+        }
+
+        var role = $"{char.ToUpperInvariant(response.Role[0])}{response.Role[1..]}";
+        return new UserRoleQuery { UserId = response.Id, Role = role };
     }
 
     public async Task<UserRoleQuery> CreateAsync(int osuId)

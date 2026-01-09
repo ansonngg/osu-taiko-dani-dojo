@@ -23,11 +23,11 @@ public class PassEvaluator
 
     public int Evaluate(StageResult stageResult)
     {
-        for (var i = _criteriaSets.Count - 1; i >= 0; i--)
+        for (var i = 0; i < _criteriaSets.Count; i++)
         {
             if (_criteriaSets[i].IsPassed(stageResult))
             {
-                return i + 1;
+                return _criteriaSets.Count - i;
             }
         }
 
@@ -43,9 +43,9 @@ public class PassEvaluator
 
         _criteriaSets.Extend(thresholds.Length);
 
-        for (var i = 1; i <= thresholds.Length; i++)
+        for (var i = 0; i < thresholds.Length; i++)
         {
-            _criteriaSets[^i].Add(constructCriteria(thresholds[^i]));
+            _criteriaSets[i].Add(constructCriteria(thresholds[^(i + 1)]));
         }
     }
 }

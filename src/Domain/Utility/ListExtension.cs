@@ -16,6 +16,14 @@ public static class ListExtension
             list.Capacity = size;
         }
 
-        list.AddRange(Enumerable.Repeat(new T(), size - count));
+        list.AddRange(_Create<T>(size - count));
+    }
+
+    private static IEnumerable<T> _Create<T>(int count) where T : new()
+    {
+        for (var i = 0; i < count; i++)
+        {
+            yield return new T();
+        }
     }
 }

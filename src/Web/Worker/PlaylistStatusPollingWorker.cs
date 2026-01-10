@@ -53,8 +53,8 @@ public class PlaylistStatusPollingWorker(
                 _accessToken,
                 _examSessionContext)
             .Run(
-                ClientConst.OsuPollingInterval,
-                ClientConst.OsuPollingDuration,
+                AppDefaults.OsuPollingInterval,
+                AppDefaults.OsuPollingDuration,
                 TimeSpan.FromSeconds(_examSessionContext.ExamTracker.CurrentBeatmapLength));
 
         Cancel();

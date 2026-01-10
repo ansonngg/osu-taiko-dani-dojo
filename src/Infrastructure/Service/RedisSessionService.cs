@@ -15,7 +15,7 @@ public class RedisSessionService : ISessionService
 
     public RedisSessionService(
         HttpClient httpClient,
-        IOptions<SessionOptions> sessionOptions,
+        IOptions<LoginSessionOptions> loginSessionOptions,
         IOptions<RedisOptions> redisOptions)
     {
         _httpClient = httpClient;
@@ -25,7 +25,7 @@ public class RedisSessionService : ISessionService
             "Bearer",
             redisOptions.Value.Token);
 
-        _redisSessionExpiryInSecond = (int)TimeSpan.FromDays(sessionOptions.Value.RedisExpiryInDay).TotalSeconds;
+        _redisSessionExpiryInSecond = (int)TimeSpan.FromDays(loginSessionOptions.Value.RedisExpiryInDay).TotalSeconds;
     }
 
     public async Task SaveSessionAsync(string sessionId, object sessionData)

@@ -3,9 +3,9 @@ using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Infrastructure.Repository;
 using OsuTaikoDaniDojo.Infrastructure.Service;
+using OsuTaikoDaniDojo.Web.Const;
 using OsuTaikoDaniDojo.Web.Handler;
 using Supabase;
-using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
 namespace OsuTaikoDaniDojo.Web.Utility;
 
@@ -33,41 +33,51 @@ public static class DependencyInjection
             });
     }
 
-    public static void AddServices(this IServiceCollection services)
+    extension(IServiceCollection services)
     {
-        services.AddHttpClient<IOsuAuthService, OsuAuthService>(
-            client => { client.BaseAddress = new Uri("https://osu.ppy.sh"); });
+        public void AddServices()
+        {
+            services.AddHttpClient<IOsuAuthService, OsuAuthService>(
+                client => { client.BaseAddress = new Uri("https://osu.ppy.sh"); });
 
-        services.AddHttpClient<IOsuMultiplayerRoomService, OsuMultiplayerRoomService>(
-                client => { client.BaseAddress = new Uri("https://osu.ppy.sh/api/v2/rooms/"); })
-            .AddHttpMessageHandler<OsuAuthHeaderHandler>();
+            services.AddHttpClient<IOsuMultiplayerRoomService, OsuMultiplayerRoomService>(
+                    client => { client.BaseAddress = new Uri("https://osu.ppy.sh/api/v2/rooms/"); })
+                .AddHttpMessageHandler<OsuAuthHeaderHandler>();
 
-        services.AddHttpClient<RedisSessionService>();
-        services.AddSingleton<ISessionService, HybridSessionService>();
-    }
+            services.AddHttpClient<RedisSessionService>();
+            services.AddSingleton<ISessionService, HybridSessionService>();
+        }
 
-    public static void AddHandlers(this IServiceCollection services)
-    {
-        services.AddAuthentication("Session")
-            .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>("Session", null);
+        public void AddHandlers()
+        {
+            services.AddAuthentication(
+                    options =>
+                    {
+                        options.DefaultAuthenticateScheme = AppDefaults.AuthenticationScheme;
+                        options.DefaultChallengeScheme = AppDefaults.AuthenticationScheme;
+                    })
+                .AddScheme<AuthenticationSchemeOptions, SessionAuthenticationHandler>(
+                    AppDefaults.AuthenticationScheme,
+                    null);
 
-        services.AddTransient<OsuAuthHeaderHandler>();
-    }
+            services.AddTransient<OsuAuthHeaderHandler>();
+        }
 
-    public static void AddRepositories(this IServiceCollection services)
-    {
-        services.AddSingleton<IExamRepository, ExamRepository>();
-        services.AddSingleton<IExamSessionRepository, ExamSessionRepository>();
-        services.AddSingleton<IGradeCertificateRepository, GradeCertificateRepository>();
-        services.AddSingleton<IUserRepository, UserRepository>();
-    }
+        public void AddRepositories()
+        {
+            services.AddSingleton<IExamRepository, ExamRepository>();
+            services.AddSingleton<IExamSessionRepository, ExamSessionRepository>();
+            services.AddSingleton<IGradeCertificateRepository, GradeCertificateRepository>();
+            services.AddSingleton<IUserRepository, UserRepository>();
+        }
 
-    public static void AddUtilities(this IServiceCollection services)
-    {
-        services.AddOptions<SessionOptions>().BindConfiguration("Session");
-        services.AddOptions<OsuOptions>().BindConfiguration("Osu");
-        services.AddOptions<RedisOptions>().BindConfiguration("Redis");
-        services.AddMemoryCache();
-        services.AddHttpContextAccessor();
+        public void AddUtilities()
+        {
+            services.AddOptions<LoginSessionOptions>().BindConfiguration("LoginSession");
+            services.AddOptions<OsuOptions>().BindConfiguration("Osu");
+            services.AddOptions<RedisOptions>().BindConfiguration("Redis");
+            services.AddMemoryCache();
+            services.AddHttpContextAccessor();
+        }
     }
 }

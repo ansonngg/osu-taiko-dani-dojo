@@ -1,6 +1,6 @@
 ﻿namespace OsuTaikoDaniDojo.Application.Options;
 
-public class SessionOptions
+public class LoginSessionOptions
 {
     public int RedisExpiryInDay { get; init; }
     public int MemoryCacheExpiryInMinute { get; init; }

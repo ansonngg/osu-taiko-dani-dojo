@@ -1,12 +1,13 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
+using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Web.Const;
 using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Request;
 using OsuTaikoDaniDojo.Web.Response;
 using OsuTaikoDaniDojo.Web.Utility;
-using SessionOptions = OsuTaikoDaniDojo.Application.Options.SessionOptions;
 
 namespace OsuTaikoDaniDojo.Web.Controller;
 
@@ -16,14 +17,14 @@ public class OAuthController(
     IOsuAuthService osuAuthService,
     ISessionService sessionService,
     IUserRepository userRepository,
-    IOptions<SessionOptions> options,
+    IOptions<LoginSessionOptions> loginSessionOptions,
     ILogger<OAuthController> logger)
     : ControllerBase
 {
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
     private readonly ISessionService _sessionService = sessionService;
     private readonly IUserRepository _userRepository = userRepository;
-    private readonly int _cookieSessionExpiryInDay = options.Value.CookieExpiryInDay;
+    private readonly int _cookieSessionExpiryInDay = loginSessionOptions.Value.CookieExpiryInDay;
     private readonly ILogger<OAuthController> _logger = logger;
 
     [HttpGet("url")]
@@ -40,7 +41,7 @@ public class OAuthController(
         var osuId = await _osuAuthService.GetUserIdAsync(tokenQuery.AccessToken);
         var userRoleQuery = await _userRepository.GetUserRoleAsync(osuId) ?? await _userRepository.CreateAsync(osuId);
 
-        var sessionData = new SessionContext
+        var loginSessionContext = new LoginSessionContext
         {
             UserId = userRoleQuery.UserId,
             OsuId = osuId,
@@ -51,10 +52,10 @@ public class OAuthController(
         };
 
         var sessionId = await _GenerateUniqueSessionIdAsync();
-        await _sessionService.SaveSessionAsync(sessionId, sessionData);
+        await _sessionService.SaveSessionAsync(sessionId, loginSessionContext);
 
         Response.Cookies.Append(
-            ClientConst.SessionIdCookieName,
+            AppDefaults.SessionIdCookieName,
             sessionId,
             DateTimeOffset.UtcNow.AddDays(_cookieSessionExpiryInDay));
 
@@ -62,10 +63,11 @@ public class OAuthController(
         return Ok();
     }
 
+    [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()
     {
-        var sessionId = Request.Cookies[ClientConst.SessionIdCookieName];
+        var sessionId = Request.Cookies[AppDefaults.SessionIdCookieName];
 
         if (string.IsNullOrEmpty(sessionId))
         {
@@ -73,7 +75,7 @@ public class OAuthController(
         }
 
         await _sessionService.DeleteSessionAsync(sessionId);
-        Response.Cookies.Delete(ClientConst.SessionIdCookieName);
+        Response.Cookies.Delete(AppDefaults.SessionIdCookieName);
         return Ok();
     }
 

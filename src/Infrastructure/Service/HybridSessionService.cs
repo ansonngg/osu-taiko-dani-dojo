@@ -7,7 +7,7 @@ namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
 public class HybridSessionService(
     RedisSessionService redisSessionService,
-    IOptions<SessionOptions> sessionOptions,
+    IOptions<LoginSessionOptions> loginSessionOptions,
     IMemoryCache memoryCache)
     : ISessionService
 {
@@ -15,7 +15,7 @@ public class HybridSessionService(
     private readonly IMemoryCache _memoryCache = memoryCache;
 
     private readonly TimeSpan _memoryCacheSessionExpiry
-        = TimeSpan.FromMinutes(sessionOptions.Value.MemoryCacheExpiryInMinute);
+        = TimeSpan.FromMinutes(loginSessionOptions.Value.MemoryCacheExpiryInMinute);
 
     public async Task SaveSessionAsync(string sessionId, object sessionData)
     {

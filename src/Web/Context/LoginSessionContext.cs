@@ -1,6 +1,6 @@
 ﻿namespace OsuTaikoDaniDojo.Web.Context;
 
-public class SessionContext
+public class LoginSessionContext
 {
     public int UserId { get; init; }
     public int OsuId { get; init; }

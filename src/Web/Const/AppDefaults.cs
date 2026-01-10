@@ -1,7 +1,8 @@
 ﻿namespace OsuTaikoDaniDojo.Web.Const;
 
-public static class ClientConst
+public static class AppDefaults
 {
+    public const string AuthenticationScheme = "OsuSession";
     public const string SessionIdCookieName = "otdd_session";
 
     public static readonly TimeSpan OsuPollingInterval = TimeSpan.FromSeconds(1);

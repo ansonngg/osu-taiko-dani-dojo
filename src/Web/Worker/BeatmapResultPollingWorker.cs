@@ -77,7 +77,7 @@ public class BeatmapResultPollingWorker(
                         _userRepository,
                         _accessToken,
                         _examSessionContext)
-                    .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
+                    .Run(AppDefaults.OsuPollingInterval, AppDefaults.OsuPollingDuration);
             }
         }
         catch (Exception)

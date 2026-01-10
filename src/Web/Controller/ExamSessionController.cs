@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using OsuTaikoDaniDojo.Application.Exam;
@@ -35,6 +36,7 @@ public class ExamSessionController(
     private readonly IMemoryCache _memoryCache = memoryCache;
     private readonly ILogger<ExamSessionController> _logger = logger;
 
+    [Authorize]
     [HttpPost("grade/{grade:int}")]
     public async Task<IActionResult> StartExamSession(int grade)
     {
@@ -119,7 +121,7 @@ public class ExamSessionController(
                 _userRepository,
                 accessToken,
                 examSessionContext)
-            .Run(ClientConst.OsuPollingInterval, ClientConst.OsuPollingDuration);
+            .Run(AppDefaults.OsuPollingInterval, AppDefaults.OsuPollingDuration);
 
         return Ok(
             new ExamSessionResponse
@@ -130,6 +132,7 @@ public class ExamSessionController(
             });
     }
 
+    [Authorize]
     [HttpGet("{examSessionId:int}")]
     public async Task GetExamSessionEvent(int examSessionId)
     {
@@ -188,9 +191,9 @@ public class ExamSessionController(
     {
         int? maxWaitingTime = examSessionContext.Status switch
         {
-            ExamSessionStatus.Waiting => ClientConst.OsuPollingDuration.Seconds,
+            ExamSessionStatus.Waiting => AppDefaults.OsuPollingDuration.Seconds,
             ExamSessionStatus.Playing => examSessionContext.ExamTracker.CurrentBeatmapLength
-                + ClientConst.OsuPollingDuration.Seconds,
+                + AppDefaults.OsuPollingDuration.Seconds,
             _ => null
         };
 

@@ -17,8 +17,11 @@ public class PassEvaluator
         int[]? hitCounts)
     {
         _LoadCriteria(greatCounts, x => new GreatCountCriteria(x));
-
-        // TODO: Set up all other types of criteria as well
+        _LoadCriteria(okCounts, x => new OkCountCriteria(x));
+        _LoadCriteria(missCounts, x => new MissCountCriteria(x));
+        _LoadCriteria(largeBonusCounts, x => new LargeBonusCountCriteria(x));
+        _LoadCriteria(maxCombos, x => new MaxComboCriteria(x));
+        _LoadCriteria(hitCounts, x => new HitCountCriteria(x));
     }
 
     public int Evaluate(StageResult stageResult)

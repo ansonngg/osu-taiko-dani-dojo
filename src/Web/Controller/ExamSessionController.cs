@@ -210,7 +210,7 @@ public class ExamSessionController(
                 max_combos = examSessionContext.ExamTracker.MaxCombos,
                 hit_counts = examSessionContext.ExamTracker.HitCounts,
                 status = examSessionContext.Status.ToSnakeCase(),
-                timeout_at = maxWaitingTime.HasValue
+                timeout_at = maxWaitingTime != null
                     ? (DateTime?)examSessionContext.LastUpdatedAt + TimeSpan.FromSeconds(maxWaitingTime.Value)
                     : null,
                 pass_level = examSessionContext.Status == ExamSessionStatus.Passed

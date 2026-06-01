@@ -1,26 +1,25 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Options;
 using OsuTaikoDaniDojo.Application.Interface;
-using OsuTaikoDaniDojo.Application.Options;
 
 namespace OsuTaikoDaniDojo.Infrastructure.Service;
 
 public class HybridSessionService(
     RedisSessionService redisSessionService,
-    IOptions<LoginSessionOptions> loginSessionOptions,
     IMemoryCache memoryCache)
     : ISessionService
 {
+    private static readonly TimeSpan MemoryCacheSessionExpiry = TimeSpan.FromMinutes(60);
     private readonly RedisSessionService _redisSessionService = redisSessionService;
     private readonly IMemoryCache _memoryCache = memoryCache;
 
-    private readonly TimeSpan _memoryCacheSessionExpiry
-        = TimeSpan.FromMinutes(loginSessionOptions.Value.MemoryCacheExpiryInMinute);
-
-    public async Task SaveSessionAsync(string sessionId, object sessionData)
+    public async Task SaveSessionAsync(string sessionId, object sessionData, TimeSpan? timeToLive)
     {
-        _memoryCache.Set(sessionId, sessionData, _memoryCacheSessionExpiry);
-        await _redisSessionService.SaveSessionAsync(sessionId, sessionData);
+        if (timeToLive != null)
+        {
+            _memoryCache.Set(sessionId, sessionData, MemoryCacheSessionExpiry);
+        }
+
+        await _redisSessionService.SaveSessionAsync(sessionId, sessionData, timeToLive);
     }
 
     public async Task<T?> GetSessionAsync<T>(string sessionId)
@@ -34,7 +33,7 @@ public class HybridSessionService(
 
         if (redisSession != null)
         {
-            _memoryCache.Set(sessionId, redisSession, _memoryCacheSessionExpiry);
+            _memoryCache.Set(sessionId, redisSession, MemoryCacheSessionExpiry);
         }
 
         return redisSession;

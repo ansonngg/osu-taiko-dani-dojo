@@ -17,15 +17,16 @@ public class SessionAuthenticationHandler(
     IOsuAuthService osuAuthService,
     ISessionService sessionService,
     IUserRepository userRepository,
-    IOptions<OsuOptions> osuOptions,
-    IOptions<LoginSessionOptions> loginSessionOptions)
+    IOptions<LoginSessionOptions> loginSessionOptions,
+    IOptions<OsuOptions> osuOptions)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
     private readonly ISessionService _sessionService = sessionService;
     private readonly IUserRepository _userRepository = userRepository;
-    private readonly int _tokenExpiryBufferInMinute = osuOptions.Value.TokenExpiryBufferInMinute;
+    private readonly TimeSpan _loginSessionExpiry = TimeSpan.FromDays(loginSessionOptions.Value.SessionExpiryInDay);
     private readonly int _cookieSessionExpiryInDay = loginSessionOptions.Value.CookieExpiryInDay;
+    private readonly int _tokenExpiryBufferInMinute = osuOptions.Value.TokenExpiryBufferInMinute;
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -65,7 +66,7 @@ public class SessionAuthenticationHandler(
                 ExpiresAt = newTokenQuery.ExpiresAt
             };
 
-            await _sessionService.SaveSessionAsync(sessionId, loginSessionContext);
+            await _sessionService.SaveSessionAsync(sessionId, loginSessionContext, _loginSessionExpiry);
 
             Response.Cookies.Append(
                 AppDefaults.SessionIdCookieName,

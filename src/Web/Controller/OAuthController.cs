@@ -24,6 +24,7 @@ public class OAuthController(
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
     private readonly ISessionService _sessionService = sessionService;
     private readonly IUserRepository _userRepository = userRepository;
+    private readonly TimeSpan _loginSessionExpiry = TimeSpan.FromDays(loginSessionOptions.Value.SessionExpiryInDay);
     private readonly int _cookieSessionExpiryInDay = loginSessionOptions.Value.CookieExpiryInDay;
     private readonly ILogger<OAuthController> _logger = logger;
 
@@ -52,7 +53,7 @@ public class OAuthController(
         };
 
         var sessionId = await _GenerateUniqueSessionIdAsync();
-        await _sessionService.SaveSessionAsync(sessionId, loginSessionContext);
+        await _sessionService.SaveSessionAsync(sessionId, loginSessionContext, _loginSessionExpiry);
 
         Response.Cookies.Append(
             AppDefaults.SessionIdCookieName,

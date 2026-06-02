@@ -40,9 +40,9 @@ public class RedisSessionService : ISessionService
         response.EnsureSuccessStatusCode();
         var retrieveDataResponse = await response.Content.ReadFromJsonAsync<RetrieveDataResponse>();
 
-        return retrieveDataResponse != null
+        return retrieveDataResponse?.Result != null
             ? JsonSerializer.Deserialize<T>(retrieveDataResponse.Result)
-            : throw new NullReferenceException("Retrieve data response is null.");
+            : default;
     }
 
     public async Task DeleteSessionAsync(string sessionId)

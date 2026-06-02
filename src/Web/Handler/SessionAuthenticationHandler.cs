@@ -26,6 +26,7 @@ public class SessionAuthenticationHandler(
     private readonly IUserRepository _userRepository = userRepository;
     private readonly TimeSpan _loginSessionExpiry = TimeSpan.FromDays(loginSessionOptions.Value.SessionExpiryInDay);
     private readonly int _cookieSessionExpiryInDay = loginSessionOptions.Value.CookieExpiryInDay;
+    private readonly int _maxSessionCountPerUser = loginSessionOptions.Value.MaxSessionCountPerUser;
     private readonly int _tokenExpiryBufferInMinute = osuOptions.Value.TokenExpiryBufferInMinute;
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -66,7 +67,40 @@ public class SessionAuthenticationHandler(
                 ExpiresAt = newTokenQuery.ExpiresAt
             };
 
+            var userId = loginSessionContext.UserId.ToString();
+            var sessionListContext = await _sessionService.GetSessionAsync<SessionListContext>(userId);
+            var newSessionListContext = new SessionListContext();
+
+            if (sessionListContext != null)
+            {
+                sessionListContext.SessionIds.Remove(sessionId);
+
+                for (var i = 0; i < sessionListContext.SessionIds.Count - (_maxSessionCountPerUser - 1); i++)
+                {
+                    await _sessionService.DeleteSessionAsync(sessionListContext.SessionIds[i]);
+                }
+
+                for (var i = Math.Max(0, sessionListContext.SessionIds.Count - (_maxSessionCountPerUser - 1));
+                     i < sessionListContext.SessionIds.Count;
+                     i++)
+                {
+                    if (!await _sessionService.ExistsSessionAsync(sessionListContext.SessionIds[i]))
+                    {
+                        continue;
+                    }
+
+                    await _sessionService.SaveSessionAsync(sessionListContext.SessionIds[i], loginSessionContext);
+                    newSessionListContext.SessionIds.Add(sessionListContext.SessionIds[i]);
+                }
+            }
+
             await _sessionService.SaveSessionAsync(sessionId, loginSessionContext, _loginSessionExpiry);
+            newSessionListContext.SessionIds.Add(sessionId);
+
+            await _sessionService.SaveSessionAsync(
+                userId,
+                newSessionListContext,
+                _loginSessionExpiry + AppDefaults.OneMinuteBuffer);
 
             Response.Cookies.Append(
                 AppDefaults.SessionIdCookieName,

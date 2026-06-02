@@ -2,10 +2,10 @@
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
+using OsuTaikoDaniDojo.Application.Context;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Web.Const;
-using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Utility;
 
 namespace OsuTaikoDaniDojo.Web.Handler;
@@ -15,18 +15,16 @@ public class SessionAuthenticationHandler(
     ILoggerFactory logger,
     UrlEncoder encoder,
     IOsuAuthService osuAuthService,
-    ISessionService sessionService,
+    ILoginService loginService,
     IUserRepository userRepository,
     IOptions<LoginSessionOptions> loginSessionOptions,
     IOptions<OsuOptions> osuOptions)
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
-    private readonly ISessionService _sessionService = sessionService;
+    private readonly ILoginService _loginService = loginService;
     private readonly IUserRepository _userRepository = userRepository;
-    private readonly TimeSpan _loginSessionExpiry = TimeSpan.FromDays(loginSessionOptions.Value.SessionExpiryInDay);
     private readonly int _cookieSessionExpiryInDay = loginSessionOptions.Value.CookieExpiryInDay;
-    private readonly int _maxSessionCountPerUser = loginSessionOptions.Value.MaxSessionCountPerUser;
     private readonly int _tokenExpiryBufferInMinute = osuOptions.Value.TokenExpiryBufferInMinute;
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
@@ -38,7 +36,7 @@ public class SessionAuthenticationHandler(
             return AuthenticateResult.NoResult();
         }
 
-        var loginSessionContext = await _sessionService.GetSessionAsync<LoginSessionContext>(sessionId);
+        var loginSessionContext = await _loginService.GetLoginSessionAsync(sessionId);
 
         if (loginSessionContext == null)
         {
@@ -52,7 +50,7 @@ public class SessionAuthenticationHandler(
 
             if (newTokenQuery == null)
             {
-                await _sessionService.DeleteSessionAsync(sessionId);
+                await _loginService.DeleteLoginSessionAsync(sessionId);
                 Response.Cookies.Delete(AppDefaults.SessionIdCookieName);
                 return AuthenticateResult.NoResult();
             }
@@ -67,40 +65,7 @@ public class SessionAuthenticationHandler(
                 ExpiresAt = newTokenQuery.ExpiresAt
             };
 
-            var userId = loginSessionContext.UserId.ToString();
-            var sessionListContext = await _sessionService.GetSessionAsync<SessionListContext>(userId);
-            var newSessionListContext = new SessionListContext();
-
-            if (sessionListContext != null)
-            {
-                sessionListContext.SessionIds.Remove(sessionId);
-
-                for (var i = 0; i < sessionListContext.SessionIds.Count - (_maxSessionCountPerUser - 1); i++)
-                {
-                    await _sessionService.DeleteSessionAsync(sessionListContext.SessionIds[i]);
-                }
-
-                for (var i = Math.Max(0, sessionListContext.SessionIds.Count - (_maxSessionCountPerUser - 1));
-                     i < sessionListContext.SessionIds.Count;
-                     i++)
-                {
-                    if (!await _sessionService.ExistsSessionAsync(sessionListContext.SessionIds[i]))
-                    {
-                        continue;
-                    }
-
-                    await _sessionService.SaveSessionAsync(sessionListContext.SessionIds[i], loginSessionContext);
-                    newSessionListContext.SessionIds.Add(sessionListContext.SessionIds[i]);
-                }
-            }
-
-            await _sessionService.SaveSessionAsync(sessionId, loginSessionContext, _loginSessionExpiry);
-            newSessionListContext.SessionIds.Add(sessionId);
-
-            await _sessionService.SaveSessionAsync(
-                userId,
-                newSessionListContext,
-                _loginSessionExpiry + AppDefaults.OneMinuteBuffer);
+            await _loginService.UpdateLoginSessionAsync(sessionId, loginSessionContext);
 
             Response.Cookies.Append(
                 AppDefaults.SessionIdCookieName,

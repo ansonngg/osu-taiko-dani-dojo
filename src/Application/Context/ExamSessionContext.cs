@@ -1,7 +1,7 @@
-﻿using OsuTaikoDaniDojo.Application.Exam;
-using OsuTaikoDaniDojo.Web.Const;
+﻿using OsuTaikoDaniDojo.Application.Const;
+using OsuTaikoDaniDojo.Application.Exam;
 
-namespace OsuTaikoDaniDojo.Web.Context;
+namespace OsuTaikoDaniDojo.Application.Context;
 
 public class ExamSessionContext
 {

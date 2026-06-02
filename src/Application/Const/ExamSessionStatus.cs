@@ -1,4 +1,4 @@
-﻿namespace OsuTaikoDaniDojo.Web.Const;
+﻿namespace OsuTaikoDaniDojo.Application.Const;
 
 public enum ExamSessionStatus
 {

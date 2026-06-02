@@ -1,25 +1,22 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using OsuTaikoDaniDojo.Application.Interface;
 
-namespace OsuTaikoDaniDojo.Infrastructure.Service;
+namespace OsuTaikoDaniDojo.Application.Service;
 
-public class HybridSessionService(
-    RedisSessionService redisSessionService,
-    IMemoryCache memoryCache)
-    : ISessionService
+public class CachedSessionService(ISessionService sessionService, IMemoryCache memoryCache) : ISessionService
 {
     private static readonly TimeSpan MemoryCacheSessionExpiry = TimeSpan.FromMinutes(60);
-    private readonly RedisSessionService _redisSessionService = redisSessionService;
+    private readonly ISessionService _sessionService = sessionService;
     private readonly IMemoryCache _memoryCache = memoryCache;
 
-    public async Task SaveSessionAsync(string sessionId, object sessionData, TimeSpan? timeToLive)
+    public async Task SaveSessionAsync(string sessionId, object sessionData, TimeSpan? timeToLive = null)
     {
         if (timeToLive != null)
         {
             _memoryCache.Set(sessionId, sessionData, MemoryCacheSessionExpiry);
         }
 
-        await _redisSessionService.SaveSessionAsync(sessionId, sessionData, timeToLive);
+        await _sessionService.SaveSessionAsync(sessionId, sessionData, timeToLive);
     }
 
     public async Task<T?> GetSessionAsync<T>(string sessionId)
@@ -29,7 +26,7 @@ public class HybridSessionService(
             return session;
         }
 
-        var redisSession = await _redisSessionService.GetSessionAsync<T>(sessionId);
+        var redisSession = await _sessionService.GetSessionAsync<T>(sessionId);
 
         if (redisSession != null)
         {
@@ -42,11 +39,11 @@ public class HybridSessionService(
     public async Task DeleteSessionAsync(string sessionId)
     {
         _memoryCache.Remove(sessionId);
-        await _redisSessionService.DeleteSessionAsync(sessionId);
+        await _sessionService.DeleteSessionAsync(sessionId);
     }
 
     public async Task<bool> ExistsSessionAsync(string sessionId)
     {
-        return _memoryCache.TryGetValue(sessionId, out _) || await _redisSessionService.ExistsSessionAsync(sessionId);
+        return _memoryCache.TryGetValue(sessionId, out _) || await _sessionService.ExistsSessionAsync(sessionId);
     }
 }

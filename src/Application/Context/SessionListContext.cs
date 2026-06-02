@@ -1,4 +1,4 @@
-﻿namespace OsuTaikoDaniDojo.Web.Context;
+﻿namespace OsuTaikoDaniDojo.Application.Context;
 
 public class SessionListContext
 {

@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using OsuTaikoDaniDojo.Application.Context;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
 using OsuTaikoDaniDojo.Web.Const;
-using OsuTaikoDaniDojo.Web.Context;
 using OsuTaikoDaniDojo.Web.Request;
 using OsuTaikoDaniDojo.Web.Response;
 using OsuTaikoDaniDojo.Web.Utility;
@@ -15,18 +15,16 @@ namespace OsuTaikoDaniDojo.Web.Controller;
 [Route("api/[controller]")]
 public class OAuthController(
     IOsuAuthService osuAuthService,
-    ISessionService sessionService,
+    ILoginService loginService,
     IUserRepository userRepository,
     IOptions<LoginSessionOptions> loginSessionOptions,
     ILogger<OAuthController> logger)
     : ControllerBase
 {
     private readonly IOsuAuthService _osuAuthService = osuAuthService;
-    private readonly ISessionService _sessionService = sessionService;
+    private readonly ILoginService _loginService = loginService;
     private readonly IUserRepository _userRepository = userRepository;
-    private readonly TimeSpan _loginSessionExpiry = TimeSpan.FromDays(loginSessionOptions.Value.SessionExpiryInDay);
     private readonly int _cookieSessionExpiryInDay = loginSessionOptions.Value.CookieExpiryInDay;
-    private readonly int _maxSessionCountPerUser = loginSessionOptions.Value.MaxSessionCountPerUser;
     private readonly ILogger<OAuthController> _logger = logger;
 
     [HttpGet("url")]
@@ -53,39 +51,7 @@ public class OAuthController(
             ExpiresAt = tokenQuery.ExpiresAt
         };
 
-        var userId = loginSessionContext.UserId.ToString();
-        var sessionListContext = await _sessionService.GetSessionAsync<SessionListContext>(userId);
-        var newSessionListContext = new SessionListContext();
-
-        if (sessionListContext != null)
-        {
-            for (var i = 0; i < sessionListContext.SessionIds.Count - (_maxSessionCountPerUser - 1); i++)
-            {
-                await _sessionService.DeleteSessionAsync(sessionListContext.SessionIds[i]);
-            }
-
-            for (var i = Math.Max(0, sessionListContext.SessionIds.Count - (_maxSessionCountPerUser - 1));
-                 i < sessionListContext.SessionIds.Count;
-                 i++)
-            {
-                if (!await _sessionService.ExistsSessionAsync(sessionListContext.SessionIds[i]))
-                {
-                    continue;
-                }
-
-                await _sessionService.SaveSessionAsync(sessionListContext.SessionIds[i], loginSessionContext);
-                newSessionListContext.SessionIds.Add(sessionListContext.SessionIds[i]);
-            }
-        }
-
-        var sessionId = await _GenerateUniqueSessionIdAsync();
-        await _sessionService.SaveSessionAsync(sessionId, loginSessionContext, _loginSessionExpiry);
-        newSessionListContext.SessionIds.Add(sessionId);
-
-        await _sessionService.SaveSessionAsync(
-            userId,
-            newSessionListContext,
-            _loginSessionExpiry + AppDefaults.OneMinuteBuffer);
+        var sessionId = await _loginService.CreateLoginSessionAsync(loginSessionContext);
 
         Response.Cookies.Append(
             AppDefaults.SessionIdCookieName,
@@ -107,20 +73,8 @@ public class OAuthController(
             return BadRequest();
         }
 
-        await _sessionService.DeleteSessionAsync(sessionId);
+        await _loginService.DeleteLoginSessionAsync(sessionId);
         Response.Cookies.Delete(AppDefaults.SessionIdCookieName);
         return Ok();
-    }
-
-    private async Task<string> _GenerateUniqueSessionIdAsync()
-    {
-        var sessionId = Guid.NewGuid().ToString();
-
-        while (await _sessionService.ExistsSessionAsync(sessionId))
-        {
-            sessionId = Guid.NewGuid().ToString();
-        }
-
-        return sessionId;
     }
 }

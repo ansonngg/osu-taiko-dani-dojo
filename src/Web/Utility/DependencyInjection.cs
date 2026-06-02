@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using OsuTaikoDaniDojo.Application.Interface;
 using OsuTaikoDaniDojo.Application.Options;
+using OsuTaikoDaniDojo.Application.Service;
 using OsuTaikoDaniDojo.Infrastructure.Repository;
 using OsuTaikoDaniDojo.Infrastructure.Service;
 using OsuTaikoDaniDojo.Web.Const;
@@ -44,8 +45,9 @@ public static class DependencyInjection
                     client => { client.BaseAddress = new Uri("https://osu.ppy.sh/api/v2/rooms/"); })
                 .AddHttpMessageHandler<OsuAuthHeaderHandler>();
 
-            services.AddHttpClient<RedisSessionService>();
-            services.AddSingleton<ISessionService, HybridSessionService>();
+            services.AddHttpClient<ISessionService, RedisSessionService>();
+            services.AddSingleton<ILoginService, LoginService>();
+            services.AddSingleton<CachedSessionService>();
         }
 
         public void AddHandlers()

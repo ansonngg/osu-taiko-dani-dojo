@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="OsuDojo.Application/OsuDojo.Application.csproj" />
+  <Project Path="OsuDojo.Domain/OsuDojo.Domain.csproj" />
+  <Project Path="OsuDojo.Infrastructure/OsuDojo.Infrastructure.csproj" />
+  <Project Path="OsuDojo.Web/OsuDojo.Web.csproj" />
+</Solution>

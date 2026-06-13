@@ -3,16 +3,19 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /app
 
 # Copy solution and restore dependencies
-COPY OsuTaikoDaniDojo.sln ./
-COPY src/Application/*.csproj ./src/Application/
-COPY src/Domain/*.csproj ./src/Domain/
-COPY src/Infrastructure/*.csproj ./src/Infrastructure/
-COPY src/Web/*.csproj ./src/Web/
+COPY OsuDojo.slnx ./
+COPY OsuDojo.Application/*.csproj ./OsuDojo.Application/
+COPY OsuDojo.Domain/*.csproj ./OsuDojo.Domain/
+COPY OsuDojo.Infrastructure/*.csproj ./OsuDojo.Infrastructure/
+COPY OsuDojo.Web/*.csproj ./OsuDojo.Web/
 RUN dotnet restore
 
 # Copy all source files and build
-COPY src/. ./src/
-WORKDIR /app/src/Web
+COPY OsuDojo.Application/. ./OsuDojo.Application/
+COPY OsuDojo.Domain/. ./OsuDojo.Domain/
+COPY OsuDojo.Infrastructure/. ./OsuDojo.Infrastructure/
+COPY OsuDojo.Web/. ./OsuDojo.Web/
+WORKDIR /app/OsuDojo.Web
 RUN dotnet publish -c Release -o /app/publish
 
 # Runtime
@@ -28,4 +31,4 @@ ENV ASPNETCORE_HTTP_PORTS=${PORT:-5051}
 # Expose default port
 EXPOSE 5051
 
-ENTRYPOINT ["dotnet", "Web.dll"]
+ENTRYPOINT ["dotnet", "OsuDojo.Web.dll"]
